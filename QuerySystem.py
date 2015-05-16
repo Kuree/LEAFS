@@ -15,10 +15,10 @@ class QueryCommand:
 
     def __init__(self, query_id, command, topic):
         '''
-            Initialize the query command object
-            query_id: query id that's used in query system
-            command: indicates the state of the query object
-            topic: specific source stream to listen to
+        Initialize the query command object
+        query_id: query id that's used in query system
+        command: indicates the state of the query object
+        topic: specific source stream to listen to
         '''
         self._query_id = int(query_id)
         self._command = int(command)
@@ -27,8 +27,8 @@ class QueryCommand:
 
 class QuerySystem:
     '''
-        A query handling system that supports querying history data as well as streaming data.
-        Users can pause and resume the stream.
+    A query handling system that supports querying history data as well as streaming data.
+    Users can pause and resume the stream.
     '''
     _HOSTNAME = "mqtt.bucknell.edu"
     _QUERY_REQUEST_TOPIC_STRING = "Query/Request/+"
@@ -37,7 +37,7 @@ class QuerySystem:
 
     def __init__(self, block_current_thread = False):
         '''
-            Initialize the query system. If block_current_thread is set to True, then it will block the current thread
+        Initialize the query system. If block_current_thread is set to True, then it will block the current thread
         '''
         # TODO: need to improve this import part
         from MongoDB import MongoDBClient
@@ -76,7 +76,7 @@ class QuerySystem:
 
     def _message_relay(self, mqttc, obj, msg):
         '''
-            Forward the message to streaming topic with query id
+        Forward the message to streaming topic with query id
         '''
         log(logging.DEBUG, "message relay: " +  msg.payload.decode())
         topic = msg.topic
@@ -106,7 +106,7 @@ class QuerySystem:
 
     def _new_query_on_message(self, mqttc, obj, msg):
         '''
-            Handle in coming new query request
+        Handle in coming new query request
         '''
         from QueryObject import QueryObject
         log(logging.INFO, "New query message: " +  msg.payload.decode())
@@ -134,9 +134,9 @@ class QuerySystem:
 
     def add_streaming_query(self, topic, query_id):
         '''
-            Add query_id and topic to the system manually
-            topic: streaming topic to listen to
-            query_id: unique query id
+        Add query_id and topic to the system manually
+        topic: streaming topic to listen to
+        query_id: unique query id
         '''
         if topic in self._topic_id_dict:
             self._topic_id_dict[topic].append(query_id)
@@ -146,7 +146,7 @@ class QuerySystem:
     @staticmethod
     def _send_query_data(topic, start, end, id):
         '''
-            Publish the query data to the streaming client
+        Publish the query data to the streaming client
         '''
         result = QuerySystem._query_db(topic, start, end)
         publish.single(QuerySystem._QUERY_RESULT_TOPIC_STRING + str(id), json.dumps(result), hostname=QuerySystem._HOSTNAME)

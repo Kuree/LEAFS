@@ -6,6 +6,12 @@ import json
 from urllib.request  import urlopen
 import re
 
+
+'''
+Simple feed bot to send sensor data to the server.
+It parses the web page to get the RSS link, then parse the description in RSS to get the time stamp and value
+'''
+
 def getAllPAUrl():
     result = []
     searchURL = "http://water.weather.gov/ahps/rss/gauges.php?state=pa&fcst_type=obs"

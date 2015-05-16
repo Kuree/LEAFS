@@ -9,8 +9,8 @@ from LoggingHelper import log, logging
 
 class QueryClient:
     '''
-        This class is used for query certain topic with streaming support
-        Note: It spawns another thread in the background, hence it will not block the current thread
+    This class is used for query certain topic with streaming support
+    Note: It spawns another thread in the background, hence it will not block the current thread
     '''
     _HOSTNAME = "mqtt.bucknell.edu"
     _QUERY_REQUEST_TOPIC = "Query/Request/"
@@ -22,12 +22,12 @@ class QueryClient:
 
     def __init__(self, topic, start, end, persistent = True):
         '''
-            Initialize the class with query requirement.
-            topic:  the topic to listen to
-            start: epoch time stamp. Data after the start time will be returned by the server
-            end: epoch time stamp. Data before the end time will be returned by the server
-            persistent: if set to true, then the server will store the query object and streaming data to that topic
-            Note: once the object is created, it will automatically send the query to the server
+        Initialize the class with query requirement.
+        topic:  the topic to listen to
+        start: epoch time stamp. Data after the start time will be returned by the server
+        end: epoch time stamp. Data before the end time will be returned by the server
+        persistent: if set to true, then the server will store the query object and streaming data to that topic
+        Note: once the object is created, it will automatically send the query to the server
         '''
         self._query_sub = Client()
         self._query_id = random.randrange(10000000)    # make sure that each query object id is unique
@@ -43,9 +43,9 @@ class QueryClient:
 
     def start(self):
         '''
-            Start to receive streaming data. Only valid if the persistent is set to true.
-            If start after a pause, the client will receive a chunk of data from when it paused to the current data.
-            Then afterwards the client will receive streaming data
+        Start to receive streaming data. Only valid if the persistent is set to true.
+        If start after a pause, the client will receive a chunk of data from when it paused to the current data.
+        Then afterwards the client will receive streaming data
         '''
         publish.single(QueryClient._QUERY_COMMAND_TOPIC + str(self._query_id), QueryClient._START, hostname=QueryClient._HOSTNAME)
 
@@ -57,8 +57,8 @@ class QueryClient:
 
     def delete(self):
         '''
-            Delete the query object on the server. The client will no longer receive any data from the server.
-            Even after calling start it won't receive anything
+        Delete the query object on the server. The client will no longer receive any data from the server.
+        Even after calling start it won't receive anything
         '''
         publish.single(QueryClient._QUERY_COMMAND_TOPIC + str(self._query_id), QueryClient._DELETE, hostname=QueryClient._HOSTNAME)
 

@@ -7,12 +7,18 @@ c = conn.cursor()
 
 
 def putData(sensorID, timestamp, value):
+    '''
+    Prototyping simple database. Will move to Cassandra or mongodb
+    '''
     print(sensorID, timestamp, value)
     c.execute('insert into WaterLevel values(?, ?, ?)', (sensorID, timestamp, value))
     conn.commit()
 
 
 def queryData(sensor, start, end):
+    '''
+    Prototyping simple database. Will move to Cassandra or mongodb
+    '''
     query = (sensor, start, end)
     c.execute('select * from WaterLevel where SensorName=? and time >= ? and time <= ?', query)
     result = []
