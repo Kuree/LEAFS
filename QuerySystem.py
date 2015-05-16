@@ -1,7 +1,6 @@
 from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 from SqlHelper import queryData
-import threading
 import json, time, logging
 from LoggingHelper import log
 
