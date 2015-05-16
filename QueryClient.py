@@ -30,7 +30,7 @@ class QueryClient:
         '''
         self._query_sub = Client()
         self._query_id = random.randrange(10000000)    # make sure that each query object id is unique
-        query_obj = QueryObject.createQueryObj(topic, start, end, persistent, self._query_id)
+        query_obj = QueryObject.create_query_obj(topic, start, end, persistent, self._query_id)
         query_obj.persistent = persistent
         # subscribe the query result topic first before send the query to the server
         self._query_sub.connect(QueryClient._HOSTNAME)

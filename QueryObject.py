@@ -2,6 +2,12 @@ import json
 
 class QueryObject:
     def __init__(self, data, id):
+        '''
+            Initialize the query object with string sent from network
+            data: serialized query object
+            id: unique query id
+        '''
+        # TODO: replace with logging here
         print("Query object created from string", data)
         self.current = None
         if data is None:
@@ -22,6 +28,9 @@ class QueryObject:
         # TODO: existing implementation assume user provides end
 
     def to_object(self):
+        '''
+            Convert the object into dictionary object
+        '''
         result = {}
         result["start"] = self.start
         result["topic"] = self.topic
@@ -32,7 +41,14 @@ class QueryObject:
         return result
 
     @staticmethod
-    def createQueryObj(topic, start, end, persistent, id):
+    def create_query_obj(topic, start, end, persistent, id):
+        '''
+            A factory method to create query object
+            start: epoch time stamp
+            end: epoch time stamp
+            persistent: set to True if streaming data is required
+            id: unique query id for identification
+        '''
         result = QueryObject(None, None)
         result.start = start
         result.end = end
