@@ -3,7 +3,6 @@ import json
 class QueryObject:
     def __init__(self, data, id):
         print("Query object created from string", data)
-        self.command = 0 # 0 is start. Need to move it to upper level
         self.current = None
         if data is None:
             # this creates an empty object
@@ -27,7 +26,6 @@ class QueryObject:
         result["start"] = self.start
         result["topic"] = self.topic
         result["id"] = self.id
-        result["command"] = self.command
         result["current"] = self.current if self.current is not None else self.end
         result['end'] = self.end
         result["persistent"] = self.persistent

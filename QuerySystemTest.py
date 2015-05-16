@@ -4,31 +4,33 @@ import json
 import time
 import threading
 
-def pushData():
-    def run_forever():
-        count = 20
-        while True:
-            obj = {"Timestamp": count, "Value": 1}
-            publish.single("test/test", json.dumps(obj), hostname="mqtt.bucknell.edu")
+should_stop = False
 
-            time.sleep(0.4)
-            count += 1
-    t = threading.Thread(target=run_forever)
-    t.start()
+def push_data_forever():
+    count = 20
+    while not should_stop:
+        obj = {"Timestamp": count, "Value": 1}
+        publish.single("test/test", json.dumps(obj), hostname="mqtt.bucknell.edu")
+        time.sleep(0.2)
+        count += 1
+
 
 
 if __name__ == '__main__':
-    pushData()
+    t = threading.Thread(target=push_data_forever)
+    t.start()
     q = QueryClient("test/test", 0, 20)
-    time.sleep(9)
+    time.sleep(2)
     print("pause the query")
     q.pause()
-    time.sleep(20)
+    time.sleep(2)
     print("start the query")
     q.start()
-    time.sleep(15)
+    time.sleep(2)
     print("stop the query")
     q.delete()
-    time.sleep(20)
+    time.sleep(2)
 
-    exit()
+    should_stop = True
+    print("stop testing")
+    exit(1)
