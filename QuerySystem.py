@@ -2,10 +2,8 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import threading
-import json
-import queue
-import time
-
+import json, time, logging
+from LoggingHelper import log
 
 class QueryCommand:
     '''
@@ -80,21 +78,23 @@ class QuerySystem:
         '''
             Forward the message to streaming topic with query id
         '''
-        # TODO: replace the print with logging
-        print("message relay", msg.payload)
+        log(logging.DEBUG, "message relay: " +  msg.payload.decode())
         topic = msg.topic
+        if topic not in self._topic_id_dict:
+            return # no client subscribe to it
+
         query_id_list = self._topic_id_dict[topic]
         raw_data = msg.payload.decode()
         stream_data = json.loads(raw_data)
         current = stream_data["Timestamp"]
         for query_id in query_id_list:  # loop through the id list (if any)
+            
             # update the db current time
             self._update_current_time(query_id, current)
 
-            # TODO: fix the bug here
-            # dirty fix
-            if query_id not in self._query_command_dict:
-                return
+            if query_id not in self._query_command_dict: 
+                log(logging.ERROR, "Zero query subscriber, but still subscribed to incoming message")
+                return # shouldn't hit here, but just in case
 
             # get the command object from in memory document
             command_obj = self._query_command_dict[query_id]
@@ -109,30 +109,28 @@ class QuerySystem:
             Handle in coming new query request
         '''
         from QueryObject import QueryObject
-        print("new query message", msg.payload)
+        log(logging.INFO, "New query message: " +  msg.payload.decode())
         topic = msg.topic
         topics = topic.split("/")
-        print(topics)
         if len(topics) != 3: 
-            # TODO: need to add logging here
+            log(logging.ERROR, "Incorrect query request")
             return
         query_id = int(topics[2])
-        queryObj = QueryObject(msg.payload.decode(), query_id)
+        query_obj = QueryObject(msg.payload.decode(), query_id)
 
-        # TODO: replace with logging here
-        print(queryObj.to_object())
+        log(logging.INFO, "Query message: " +  json.dumps(query_obj.to_object()))
 
         # record the topic as well as query id
-        self.add_streaming_query(queryObj.topic, query_id)
+        self.add_streaming_query(query_obj.topic, query_id)
 
-        if queryObj.persistent:
+        if query_obj.persistent:
             # because it is persistent, we need to store the data
-            self._mongodb.add(queryObj)            
-            self._query_relay_sub.subscribe(queryObj.topic)
+            self._mongodb.add(query_obj)            
+            self._query_relay_sub.subscribe(query_obj.topic)
             self._query_command_dict[query_id] = QueryCommand(query_id, QueryCommand._START, QuerySystem._QUERY_RESULT_TOPIC_STRING + str(query_id))
 
         # send back the historical data, if any
-        QuerySystem._send_query_data(queryObj.topic, queryObj.start, queryObj.end, query_id)
+        QuerySystem._send_query_data(query_obj.topic, query_obj.start, query_obj.end, query_id)
 
     def add_streaming_query(self, topic, query_id):
         '''
@@ -164,8 +162,7 @@ class QuerySystem:
             query_command._command = command
             return
         elif command == QueryCommand._DELETE:
-            # remove the topic from subscription
-            self._query_relay_sub.unsubscribe(query_command._topic)
+            
 
             # delete the query object from mongodb
             self._mongodb.delete_by_id(query_id)
@@ -174,12 +171,19 @@ class QuerySystem:
             del self._query_command_dict[query_id]
 
             # remove the key from topic id list
-            if query_command._topic not in self._topic_id_dict:
+            query_topic = None
+            for key in self._topic_id_dict: # find the key
+                if query_id in self._topic_id_dict[key]:
+                    query_topic = key
+            if query_topic is None:
+                log(logging.ERROR, "Could not find query id for deleting query object. Query ID: " +  str(query_id))
                 return
-            self._topic_id_dict[query_command._topic].remove(query_id)
-            if len(self._topic_id_dict[query_command._topic]) == 0:
+            self._topic_id_dict[query_topic].remove(query_id)
+            if len(self._topic_id_dict[query_topic]) == 0:
                 # if the list is empty, then delete it
-                del self._topic_id_dict[query_command._topic]
+                del self._topic_id_dict[query_topic]
+                # remove the topic from subscription
+            self._query_relay_sub.unsubscribe(query_topic)
         elif command == QueryCommand._START:
             query_command._command = command
             db_entry = self._mongodb.find_by_id(query_id)
@@ -188,17 +192,15 @@ class QuerySystem:
             db_entry["start"] = start
             db_entry["end"] = end
             self._mongodb.add(db_entry)
-            # TODO : replace this with logging
-            print("query resume", start, end)
+            log(logging.INFO, "Resume query " +  "{0:d} {1:d}".format(start, end))
             QuerySystem._send_query_data(db_entry["topic"], start, end, query_id)
 
 
     def _command_on_message(self, mqttc, obj, msg):
         payload = msg.payload.decode()
         topics = msg.topic.split("/")
-        print(topics)
         if len(topics) != 3:
-            # TODO: need to add logging here
+            log(logging.ERROR, "Incorrect command request")
             return
         query_id = int(topics[-1])
         command = int(msg.payload)
@@ -207,7 +209,7 @@ class QuerySystem:
     def _update_db_end(self, query_id, end):
         query_obj = self._mongodb.find_by_id(query_id)
         if query_obj is None: 
-            # TODO: need to add logging here
+            log(logging.ERROR, "Could not find query id for updating end time. Query ID: " +  str(query_id))
             return
         query_obj["end"] = end
         self._mongodb.add(query_obj)
@@ -216,7 +218,7 @@ class QuerySystem:
     def _update_current_time(self, query_id, current):
         query_obj = self._mongodb.find_by_id(query_id)
         if query_obj is None:
-            # TODO: need to add logging here
+            log(logging.ERROR, "Could not find query id for updating current time. Query id: " +  str(query_id))
             return
         query_obj["current"] = current
         self._mongodb.add(query_obj)

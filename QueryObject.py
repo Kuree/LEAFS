@@ -1,4 +1,6 @@
-import json
+import json, logging
+from LoggingHelper import log
+
 
 class QueryObject:
     def __init__(self, data, id):
@@ -7,8 +9,7 @@ class QueryObject:
             data: serialized query object
             id: unique query id
         '''
-        # TODO: replace with logging here
-        print("Query object created from string", data)
+        log(logging.DEBUG, "Query object created from string: " + str(data))
         self.current = None
         if data is None:
             # this creates an empty object

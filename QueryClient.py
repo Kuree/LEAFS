@@ -4,6 +4,7 @@ import threading
 import random
 from QueryObject import QueryObject
 import json
+from LoggingHelper import log, logging
 
 
 class QueryClient:
@@ -62,4 +63,4 @@ class QueryClient:
         publish.single(QueryClient._QUERY_COMMAND_TOPIC + str(self._query_id), QueryClient._DELETE, hostname=QueryClient._HOSTNAME)
 
     def _on_message(self, mqttc, obj, msg):
-        print(msg.payload)
+        log(logging.DEBUG, "Received message: " + msg.payload.decode())
