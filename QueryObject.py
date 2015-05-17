@@ -2,6 +2,24 @@ import json, logging
 from LoggingHelper import log
 
 
+class QueryCommand:
+    AVERAGE = "avg"
+    SUM = "sum"
+    MAX = "max"
+    MIN = "min"
+    DEV = "dev"
+    ONE_MINUTE = 60
+    FIVE_MINUTE = 60 * 5
+
+    def __init__(self):
+        self.commands = []
+
+    def add_compute_command(self, type, interval = None):
+        self.commands.append({"name" : type, "arg" : [interval] if interval is not None else []})
+
+    def to_compute_obj(self):
+        return self.commands
+
 class QueryObject:
     def __init__(self, data, id):
         '''
@@ -26,6 +44,8 @@ class QueryObject:
         self.end = data["end"]
         self.persistent = data["persistent"]
 
+        self.compute = data["compute"] if "compute" in data else None
+
         # TODO: existing implementation assume user provides end
 
     def to_object(self):
@@ -39,10 +59,15 @@ class QueryObject:
         result["current"] = self.current if self.current is not None else self.end
         result['end'] = self.end
         result["persistent"] = self.persistent
+        if self.needs_compute():
+            result["compute"] = self.compute
         return result
 
+    def needs_compute(self):
+        return self.compute is not None
+
     @staticmethod
-    def create_query_obj(topic, start, end, persistent, id):
+    def create_query_obj(topic, start, end, persistent, id, compute = None):
         '''
             A factory method to create query object
             start: epoch time stamp
@@ -56,5 +81,6 @@ class QueryObject:
         result.topic = topic
         result.id = int(id)
         result.persistent = persistent
+        result.compute = None
         print("Query object created", result.to_object())
         return result

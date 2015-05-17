@@ -11,6 +11,9 @@ class Compute:
     # Currently the first timestamp of a chunk is used to represent the entire chunk
     # Need to find a better way to do it
 
+    # NOTICE:
+    # This entire computation is map-reduce pattern.
+    # It is very reasonable to use streaming map-reduce in the future
     @staticmethod
     def avg(data, interval = 1):
         chunks = ComputeSystem.split_into_chunk(data, interval)
@@ -65,17 +68,20 @@ class ComputeSystem:
     _HOSTNAME = "mqtt.bucknell.edu"
     COMPUTE_FUNCTION = {"avg" : Compute.avg}
 
-    def __init__(self):
+    def __init__(self, block_current_thread = False):
        self._compute_request_sub = Client()
        self._compute_request_sub.subscribe(ComputeSystem._COMPUTE_REQUEST_TOPIC_STRING)
        self._compute_request_sub.connect(ComputeSystem._HOSTNAME)
        self._compute_request_sub.on_message = self._on_compute_message
        self._compute_request_sub.loop_start()
 
+       if block_current_thread:
+           time.sleep(100)
+
     def _on_compute_message(self, mqttc, obj, msg):
         message = json.loads(msg.payload.decode())
         data = message["data"]
-        commands = message["commands"]
+        commands = message["compute"]
 
         if not ComputeSystem.should_return(commands):
             command = commands[0]
@@ -91,7 +97,7 @@ class ComputeSystem:
                         message["data"] = ComputeSystem.COMPUTE_FUNCTION[command_name](data, interval)
 
             commands.remove(command)
-            message["commands"] = commands
+            message["compute"] = commands
             self.send_to_next(msg.topic, json.dumps(message))
         else:
             topics = msg.topic.split("/")
@@ -129,3 +135,6 @@ class ComputeSystem:
                 pre_timestamp = timestamp
         result.append(chunk)
         return result
+
+if __name__ == "__main__":
+    sys = ComputeSystem(True)

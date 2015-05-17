@@ -33,6 +33,7 @@ class QuerySystem:
     _QUERY_REQUEST_TOPIC_STRING = "Query/Request/+"
     _QUERY_COMMAND_TOPIC_STRING = "Query/Command/+"
     _QUERY_RESULT_TOPIC_STRING = "Query/Result/"
+    _COMPUTE_REQUEST_TOPIC_STRING = "Query/Compute/"
 
     def __init__(self, block_current_thread = False):
         '''
@@ -129,7 +130,8 @@ class QuerySystem:
             self._query_command_dict[query_id] = QueryCommand(query_id, QueryCommand._START, QuerySystem._QUERY_RESULT_TOPIC_STRING + str(query_id))
 
         # send back the historical data, if any
-        QuerySystem._send_query_data(query_obj.topic, query_obj.start, query_obj.end, query_id)
+        # if the query contains computation commands, send to different topic
+        QuerySystem._send_query_data(query_obj.topic, query_obj.start, query_obj.end, query_id, query_obj.compute)
 
     def add_streaming_query(self, topic, query_id):
         '''
@@ -143,12 +145,17 @@ class QuerySystem:
             self._topic_id_dict[topic] = [query_id]
 
     @staticmethod
-    def _send_query_data(topic, start, end, id):
+    def _send_query_data(topic, start, end, id, compute = None):
         '''
         Publish the query data to the streaming client
+        Note: if the query contains compute commands, it will send to the compute system instead, which will send back the query result
         '''
-        result = QuerySystem._query_db(topic, start, end)
-        publish.single(QuerySystem._QUERY_RESULT_TOPIC_STRING + str(id), json.dumps(result), hostname=QuerySystem._HOSTNAME)
+        data = QuerySystem._query_db(topic, start, end)
+        if compute is None:
+            publish.single(QuerySystem._QUERY_RESULT_TOPIC_STRING + str(id), json.dumps(data), hostname=QuerySystem._HOSTNAME)
+        else:
+            query = {"data" : data, "compute" : compute}
+            publish.single(QuerySystem._COMPUTE_REQUEST_TOPIC_STRING + str(id), json.dumps(query), hostname=QuerySystem._HOSTNAME)
 
     def _handle_command_control(self, query_id, command):
         query_id = int(query_id)
