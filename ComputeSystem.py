@@ -66,19 +66,21 @@ class ComputeSystem:
     _COMPUTE_REQUEST_TOPIC_STRING = "Query/Compute/+"
     _QUERY_RESULT_TOPIC_STRING = "Query/Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
-    COMPUTE_FUNCTION = {"avg" : Compute.avg}
+    COMPUTE_FUNCTION = {"avg" : Compute.avg, "max" : Compute.max,"min" :Compute.sum,"dev" : Compute.dev}
 
     def __init__(self, block_current_thread = False):
        self._compute_request_sub = Client()
-       self._compute_request_sub.subscribe(ComputeSystem._COMPUTE_REQUEST_TOPIC_STRING)
-       self._compute_request_sub.connect(ComputeSystem._HOSTNAME)
        self._compute_request_sub.on_message = self._on_compute_message
+       self._compute_request_sub.connect(ComputeSystem._HOSTNAME)
+       self._compute_request_sub.subscribe(ComputeSystem._COMPUTE_REQUEST_TOPIC_STRING, 0)
        self._compute_request_sub.loop_start()
 
        if block_current_thread:
-           time.sleep(100)
+           while True:
+               time.sleep(100)
 
     def _on_compute_message(self, mqttc, obj, msg):
+        print(msg.payload.decode())
         message = json.loads(msg.payload.decode())
         data = message["data"]
         commands = message["compute"]
