@@ -73,11 +73,12 @@ class ComputeSystem:
        self._compute_request_sub.on_message = self._on_compute_message
        self._compute_request_sub.connect(ComputeSystem._HOSTNAME)
        self._compute_request_sub.subscribe(ComputeSystem._COMPUTE_REQUEST_TOPIC_STRING, 0)
-       self._compute_request_sub.loop_start()
+       
 
        if block_current_thread:
-           while True:
-               time.sleep(100)
+           self._compute_request_sub.loop_forever()
+       else:
+           self._compute_request_sub.loop_start()
 
     def _on_compute_message(self, mqttc, obj, msg):
         print(msg.payload.decode())

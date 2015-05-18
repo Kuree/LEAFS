@@ -33,7 +33,7 @@ class QuerySystem:
     _QUERY_REQUEST_TOPIC_STRING = "Query/Request/+"
     _QUERY_COMMAND_TOPIC_STRING = "Query/Command/+"
     _QUERY_RESULT_TOPIC_STRING = "Query/Result/"
-    _COMPUTE_REQUEST_TOPIC_STRING = "Query/Compute/"
+    _QUERY_DATABASE_TOPIC_STRING = "Query/Database/"
 
     def __init__(self, block_current_thread = False):
         '''
@@ -56,23 +56,27 @@ class QuerySystem:
         self._query_request_sub.on_message = self._new_query_on_message
         self._query_request_sub.connect(QuerySystem._HOSTNAME)
         self._query_request_sub.subscribe(QuerySystem._QUERY_REQUEST_TOPIC_STRING, 0) # currently use qos level 0
-        self._query_request_sub.loop_start() # start the loop in the background
+        
 
         self._command_sub = Client()
         self._command_sub.on_message = self._command_on_message
         self._command_sub.connect(QuerySystem._HOSTNAME)
         self._command_sub.subscribe(QuerySystem._QUERY_COMMAND_TOPIC_STRING)
-        self._command_sub.loop_start() # start the loop in the background
 
-        
         self._query_relay_sub = Client()
         self._query_relay_sub.on_message = self._message_relay
         self._query_relay_sub.connect(QuerySystem._HOSTNAME)
-        self._query_relay_sub.loop_start() # start the loop in the background
 
         if block_current_thread:
-            while True:
-                time.sleep(100)
+            self._query_request_sub.loop_forever()
+            self._command_sub.loop_forever()
+            self._query_relay_sub.loop_forever()
+        else:
+            # start the loop in the background
+            self._query_request_sub.loop_start()
+            self._command_sub.loop_start()
+            self._query_relay_sub.loop_start() 
+
 
     def _message_relay(self, mqttc, obj, msg):
         '''
@@ -129,9 +133,8 @@ class QuerySystem:
             self._query_relay_sub.subscribe(query_obj.topic)
             self._query_command_dict[query_id] = QueryCommand(query_id, QueryCommand._START, QuerySystem._QUERY_RESULT_TOPIC_STRING + str(query_id))
 
-        # send back the historical data, if any
-        # if the query contains computation commands, send to different topic
-        QuerySystem._send_query_data(query_obj.topic, query_obj.start, query_obj.end, query_id, query_obj.compute)
+        # let database system handle it
+        publish.single(QuerySystem._QUERY_DATABASE_TOPIC_STRING + str(query_id), json.dumps(query_obj.to_object()), hostname=QuerySystem._HOSTNAME)
 
     def add_streaming_query(self, topic, query_id):
         '''
@@ -143,19 +146,6 @@ class QuerySystem:
             self._topic_id_dict[topic].append(query_id)
         else:
             self._topic_id_dict[topic] = [query_id]
-
-    @staticmethod
-    def _send_query_data(topic, start, end, id, compute = None):
-        '''
-        Publish the query data to the streaming client
-        Note: if the query contains compute commands, it will send to the compute system instead, which will send back the query result
-        '''
-        data = QuerySystem._query_db(topic, start, end)
-        if compute is None:
-            publish.single(QuerySystem._QUERY_RESULT_TOPIC_STRING + str(id), json.dumps(data), hostname=QuerySystem._HOSTNAME)
-        else:
-            query = {"data" : data, "compute" : compute}
-            publish.single(QuerySystem._COMPUTE_REQUEST_TOPIC_STRING + str(id), json.dumps(query), hostname=QuerySystem._HOSTNAME)
 
     def _handle_command_control(self, query_id, command):
         query_id = int(query_id)
