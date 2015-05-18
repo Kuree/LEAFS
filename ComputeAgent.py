@@ -6,9 +6,9 @@ from LoggingHelper import log
 from functools import reduce
 
 
-class Compute:
+class ComputeFunction:
     # NOTICE:
-    # Currently the first timestamp of a chunk is used to represent the entire chunk
+    # Currently the first time stamp of a chunk is used to represent the entire chunk
     # Need to find a better way to do it
 
     # NOTICE:
@@ -16,7 +16,7 @@ class Compute:
     # It is very reasonable to use streaming map-reduce in the future
     @staticmethod
     def avg(data, interval = 1):
-        chunks = ComputeSystem.split_into_chunk(data, interval)
+        chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b: a + b, [x[1] for x in tuples]) / len(tuples)
@@ -24,7 +24,7 @@ class Compute:
 
     @staticmethod
     def max(data, interval = 1):
-        chunks = ComputeSystem.split_into_chunk(data, interval)
+        chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b : a if a > b else b, [x[1] for x in tuples])
@@ -32,7 +32,7 @@ class Compute:
 
     @staticmethod
     def min(data, interval = 1):
-        chunks = ComputeSystem.split_into_chunk(data, interval)
+        chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b : a if a < b else b, [x[1] for x in tuples])
@@ -40,7 +40,7 @@ class Compute:
 
     @staticmethod
     def sum(data, interval = 1):
-        chunks = ComputeSystem.split_into_chunk(data, interval)
+        chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b : a + b, [x[1] for x in tuples])
@@ -48,7 +48,7 @@ class Compute:
 
     @staticmethod
     def dev(data, interval = 1):
-        chunks = ComputeSystem.split_into_chunk(data, interval)
+        chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: 
@@ -61,18 +61,18 @@ class Compute:
         # TODO: currently not supported. Need to find a good way to implement various argument length
         return [0]
 
-class ComputeSystem:
+class ComputeAgent:
 
-    _COMPUTE_REQUEST_TOPIC_STRING = "Query/Compute/+"
-    _QUERY_RESULT_TOPIC_STRING = "Query/Result/"
+    _COMPUTE_REQUEST_TOPIC_STRING = "+/Query/Compute/+/+"
+    _QUERY_RESULT_TOPIC_STRING = "/Query/Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
-    COMPUTE_FUNCTION = {"avg" : Compute.avg, "max" : Compute.max,"min" :Compute.sum,"dev" : Compute.dev}
+    COMPUTE_FUNCTION = {"avg" : ComputeFunction.avg, "max" : ComputeFunction.max,"min" :ComputeFunction.sum,"dev" : ComputeFunction.dev}
 
     def __init__(self, block_current_thread = False):
        self._compute_request_sub = Client()
        self._compute_request_sub.on_message = self._on_compute_message
-       self._compute_request_sub.connect(ComputeSystem._HOSTNAME)
-       self._compute_request_sub.subscribe(ComputeSystem._COMPUTE_REQUEST_TOPIC_STRING, 0)
+       self._compute_request_sub.connect(ComputeAgent._HOSTNAME)
+       self._compute_request_sub.subscribe(ComputeAgent._COMPUTE_REQUEST_TOPIC_STRING, 0)
        
 
        if block_current_thread:
@@ -81,42 +81,45 @@ class ComputeSystem:
            self._compute_request_sub.loop_start()
 
     def _on_compute_message(self, mqttc, obj, msg):
-        print(msg.payload.decode())
+        topics = msg.topic.split("/")
+        # TODO: need to switch to log
+        assert len(topics) == 5, "A standard request should have 5 levels"
+        db_tag = topics[0]
+
         message = json.loads(msg.payload.decode())
         data = message["data"]
         commands = message["compute"]
 
-        if not ComputeSystem.should_return(commands):
+        if not ComputeAgent.should_return(commands):
             command = commands[0]
             command_name = command["name"]
-            if command_name in ComputeSystem.COMPUTE_FUNCTION:
+            if command_name in ComputeAgent.COMPUTE_FUNCTION:
                 # perform computation
                 if command_name != "filter":
                     arg = command["arg"]
                     if len(arg) == 0:
-                        message["data"] = ComputeSystem.COMPUTE_FUNCTION[command_name](data)
+                        message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data)
                     else:
                         interval = int(arg[0])
-                        message["data"] = ComputeSystem.COMPUTE_FUNCTION[command_name](data, interval)
+                        message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, interval)
 
             commands.remove(command)
             message["compute"] = commands
+
+            # MAY CHANGE IN THE FUTURE
             self.send_to_next(msg.topic, json.dumps(message))
         else:
-            topics = msg.topic.split("/")
-            # TODO: need to add logging error here
-            assert len(topics) == 3, "Should be three"
-            id = int(topics[-1])
-            publish.single(ComputeSystem._QUERY_RESULT_TOPIC_STRING + str(id), json.dumps(data), hostname = ComputeSystem._HOSTNAME)
+            request_id = topics[-2] + "/" +  topics[-1]
+            publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(data), hostname = ComputeAgent._HOSTNAME)
             return
 
     def send_to_next(self, topic, message):
-        publish.single(topic, message, hostname=ComputeSystem._HOSTNAME)
+        publish.single(topic, message, hostname=ComputeAgent._HOSTNAME)
 
     @staticmethod
     def should_return(commands):
         for command in commands:
-            if command["name"] in ComputeSystem.COMPUTE_FUNCTION:
+            if command["name"] in ComputeAgent.COMPUTE_FUNCTION:
                 return False
         return True
 
@@ -140,4 +143,4 @@ class ComputeSystem:
         return result
 
 if __name__ == "__main__":
-    sys = ComputeSystem(True)
+    sys = ComputeAgent(True)

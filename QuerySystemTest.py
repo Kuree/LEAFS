@@ -40,5 +40,5 @@ if __name__ == '__main__':
     #exit(1)
     compute = QueryCommand()
     compute.add_compute_command(QueryCommand.AVERAGE, 5)
-    q = QueryClient("test/test/1", 0, 100, False, compute.to_compute_obj())
+    q = QueryClient("test/test/1", 0, 100, "test", "SQL", False, compute.to_compute_obj())
     time.sleep(5)

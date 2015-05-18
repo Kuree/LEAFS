@@ -21,7 +21,7 @@ class QueryCommand:
         return self.commands
 
 class QueryObject:
-    def __init__(self, data, id):
+    def __init__(self, data, api_key, query_id):
         '''
             Initialize the query object with string sent from network
             data: serialized query object
@@ -33,14 +33,14 @@ class QueryObject:
             # this creates an empty object
             self.start = None
             self.end = None
-            self.id  = None
+            self.request_id  = None
             self.topic = None
             self.persistent = None
             return
         data = json.loads(data) if isinstance(data, str) else json.loads(data.decode())
         self.start = data["start"]
         self.topic = data["topic"]
-        self.id = int(id)
+        self.request_id = api_key + "/" + str(query_id)
         self.end = data["end"]
         self.persistent = data["persistent"]
 
@@ -55,7 +55,7 @@ class QueryObject:
         result = {}
         result["start"] = self.start
         result["topic"] = self.topic
-        result["id"] = self.id
+        result["id"] = self.request_id
         result["current"] = self.current if self.current is not None else self.end
         result['end'] = self.end
         result["persistent"] = self.persistent
@@ -67,7 +67,7 @@ class QueryObject:
         return self.compute is not None
 
     @staticmethod
-    def create_query_obj(topic, start, end, persistent, id, compute = None):
+    def create_query_obj(topic, start, end, persistent, api_key, query_id, compute = None):
         '''
             A factory method to create query object
             start: epoch time stamp
@@ -75,11 +75,11 @@ class QueryObject:
             persistent: set to True if streaming data is required
             id: unique query id for identification
         '''
-        result = QueryObject(None, None)
+        result = QueryObject(None, None, None)
         result.start = start
         result.end = end
         result.topic = topic
-        result.id = int(id)
+        result.request_id = api_key + "/" + str(query_id)
         result.persistent = persistent
         result.compute = None
         print("Query object created", result.to_object())
