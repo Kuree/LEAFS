@@ -17,6 +17,7 @@ class WindowAgent:
     _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
 
     def __init__(self, block_current_thread = False):
+        '''Initialize the window agent'''
         self._stream_request_sub = Client()
         self._stream_request_sub.on_message = self.on_window_message
         self._stream_request_sub.connect(WindowAgent._HOSTNAME)
@@ -27,7 +28,7 @@ class WindowAgent:
         self._stream_sub.connect(WindowAgent._HOSTNAME)
 
         self._command_sub = Client()
-        self._command_sub.on_message = self.on_command_message
+        self._command_sub.on_message = self._on_command_message
         self._command_sub.connect(WindowAgent._HOSTNAME)
         self._command_sub.subscribe(WindowAgent._COMMAND_TOPIC_STRING)
 
@@ -36,16 +37,12 @@ class WindowAgent:
         self._topic_request_dict = {}
         self._stream_command = {}   # handle the streaming command
 
-        self._stream_request_sub.loop_start()
-        self._stream_sub.loop_start()
-        self._command_sub.loop_start()
-
-        if block_current_thread:
-            while True:
-                time.sleep(100)
+        self.block_current_thread = block_current_thread
 
 
-    def on_command_message(self, mqttc, obj, msg):
+
+    def _on_command_message(self, mqttc, obj, msg):
+        '''Handle the stream command like START and PAUSE'''
         api_key, query_id = WindowAgent.get_query_client_info(msg.topic)
         request_id = api_key + "/" + query_id
         query_command = QueryCommand(request_id, int(msg.payload))
@@ -79,6 +76,10 @@ class WindowAgent:
         return api_key, query_id
 
     def on_window_message(self, mqttc, obj, msg):
+        '''
+        Handle the window request message. It will keep the interested topic into memory so that later on
+        when streaming message arrives it can perform window task.
+        '''
         api_key, query_id = WindowAgent.get_query_client_info(msg.topic)
         stream_command = QueryStreamObject(msg.payload.decode(), api_key, query_id)
         request_id = api_key + "/" + query_id
@@ -94,12 +95,19 @@ class WindowAgent:
             self._stream_sub.subscribe(stream_command.topic)            
 
     def _get_list_copy(self, lst):
+        '''
+        A helper function to deal with multi-threading list change
+        '''
         result = []
         for entry in lst:
             result.append(entry)
         return result
 
     def on_stream_message(self, mqttc, obj, msg):
+        '''
+        Handle the streaming message. It will look up the streaming command table and see if the data should be kept
+        in memory to perform window task.
+        '''
         topic = msg.topic
         data_dict = json.loads(msg.payload.decode())
         timestamp, value = data_dict["Timestamp"], data_dict["Value"]
@@ -128,7 +136,24 @@ class WindowAgent:
                     stream_command.data = []
                 stream_command.data.append((timestamp, value))
 
+
+    def connect(self):
+        '''
+        Call this function if you want to start the window agent
+        Note: if you want to change the behavior of the window agent, you can replace the on_message methods
+        '''
+        self._stream_request_sub.loop_start()
+        self._stream_sub.loop_start()
+        self._command_sub.loop_start()
+        
+        if self.block_current_thread:
+            # block the current thread
+            while True:
+                time.sleep(100)
+
+
                    
 if __name__ == "__main__":
     a = WindowAgent(True)
+    a.connect()
             

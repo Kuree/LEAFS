@@ -54,13 +54,8 @@ class QueryAgent:
         self._query_relay_sub.on_message = self._message_relay
         self._query_relay_sub.connect(self._HOSTNAME)        
 
-        
-        # start the loop in the background
-        self._query_request_sub.loop_start()
-        self._command_sub.loop_start()
-        self._query_relay_sub.loop_start() 
-        while True:
-            time.sleep(100)
+        self.block_current_thread = block_current_thread
+
 
 
     def _message_relay(self, mqttc, obj, msg):
@@ -233,4 +228,14 @@ class QueryAgent:
     @staticmethod
     def _query_db(topic, start, end):
         return queryData(topic, start, end)
+
+    def connect(self):
+        # start the loop in the background
+        self._query_request_sub.loop_start()
+        self._command_sub.loop_start()
+        self._query_relay_sub.loop_start() 
+
+        if self.block_current_thread:
+            while True:
+                time.sleep(100)
 

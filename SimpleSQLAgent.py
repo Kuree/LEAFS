@@ -30,3 +30,4 @@ class SQLAgent(QueryAgent):
 
 if __name__ == "__main__":
     sql = SQLAgent(True)
+    sql.connect()

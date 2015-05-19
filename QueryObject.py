@@ -136,5 +136,5 @@ class QueryObject:
         result.request_id = api_key + "/" + str(query_id)
         result.persistent = persistent
         result.compute = None
-        logger.log(logging.INFO, "Query object created", result.to_object())
+        logger.log(logging.INFO, "Query object created: " + json.dumps(result.to_object()))
         return result

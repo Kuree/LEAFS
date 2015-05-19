@@ -73,12 +73,9 @@ class ComputeAgent:
        self._compute_request_sub.on_message = self._on_compute_message
        self._compute_request_sub.connect(ComputeAgent._HOSTNAME)
        self._compute_request_sub.subscribe(ComputeAgent._COMPUTE_REQUEST_TOPIC_STRING, 0)
-       
 
-       if block_current_thread:
-           self._compute_request_sub.loop_forever()
-       else:
-           self._compute_request_sub.loop_start()
+       self.block_current_thread = block_current_thread
+       
 
     def _on_compute_message(self, mqttc, obj, msg):
         topics = msg.topic.split("/")
@@ -89,7 +86,8 @@ class ComputeAgent:
         data = message["data"]
         commands = message["compute"]
 
-        if not ComputeAgent.should_return(commands):
+        while not ComputeAgent.should_return(commands):
+            # loop till the task is finished
             command = commands[0]
             command_name = command["name"]
             if command_name in ComputeAgent.COMPUTE_FUNCTION:
@@ -103,17 +101,12 @@ class ComputeAgent:
                         message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, interval)
 
             commands.remove(command)
-            message["compute"] = commands
 
-            # MAY CHANGE IN THE FUTURE
-            self.send_to_next(msg.topic, json.dumps(message))
-        else:
-            request_id = topics[-2] + "/" +  topics[-1]
-            publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(data), hostname = ComputeAgent._HOSTNAME)
-            return
+        
+        request_id = topics[-2] + "/" +  topics[-1]
+        publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(message["data"]), hostname = ComputeAgent._HOSTNAME)
+        return
 
-    def send_to_next(self, topic, message):
-        publish.single(topic, message, hostname=ComputeAgent._HOSTNAME)
 
     @staticmethod
     def should_return(commands):
@@ -121,6 +114,13 @@ class ComputeAgent:
             if command["name"] in ComputeAgent.COMPUTE_FUNCTION:
                 return False
         return True
+
+
+    def connect(self):
+       if self.block_current_thread:
+           self._compute_request_sub.loop_forever()
+       else:
+           self._compute_request_sub.loop_start()
 
 
 
@@ -143,3 +143,4 @@ class ComputeAgent:
 
 if __name__ == "__main__":
     sys = ComputeAgent(True)
+    sys.connect()
