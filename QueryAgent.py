@@ -44,7 +44,6 @@ class QueryAgent:
         self._QUERY_COMMAND_TOPIC_STRING = self._DATABASE_TAG + "/Query/Command/+/+"
         self._QUERY_RESULT_TOPIC_STRING = self._DATABASE_TAG + "/Query/Result/"
         self._COMPUTE_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Compute/"
-        self._WINDOW_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Window/"
 
         # TODO: need to improve this import part
         from MongoDB import MongoDBClient
@@ -138,13 +137,15 @@ class QueryAgent:
         if query_obj.persistent:
             # because it is persistent, we need to store the query information
             self._mongodb.add(query_obj)            
-            self._query_relay_sub.subscribe(query_obj.topic)
-            self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START, self._QUERY_RESULT_TOPIC_STRING + str(request_id))
 
             # register it in the window system
-            if query_obj.compute is not None:
-                stream_obj = QueryStreamObject.create_stream_obj(api_key, query_id, query_obj.topic, db_tag, query_obj.compute)
-                publish.single(self._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+            if query_obj.compute is None:
+                #stream_obj = QueryStreamObject.create_stream_obj(api_key, query_id, query_obj.topic, db_tag, query_obj.compute)
+                #publish.single(self._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+            #else:
+                # let the query agent to relay the message
+                self._query_relay_sub.subscribe(query_obj.topic)
+                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START, self._QUERY_RESULT_TOPIC_STRING + str(request_id))
 
         self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 

@@ -12,7 +12,7 @@ def push_data_forever():
     count = 20
     while not should_stop:
         obj = {"Timestamp": count, "Value": 1}
-        publish.single("test/test", json.dumps(obj), hostname="mqtt.bucknell.edu")
+        publish.single("test/test/1", json.dumps(obj), hostname="mqtt.bucknell.edu")
         time.sleep(0.2)
         count += 1
 
@@ -23,7 +23,7 @@ def push_data_into_sql():
 if __name__ == '__main__':
     t = threading.Thread(target=push_data_forever)
     t.start()
-    #q = QueryClient("test/test", 0, 20, "test", "SQL", True)
+    #q = QueryClient("test/test/1", 0, 20, "test", "SQL", True)
     #time.sleep(2)
     #print("pause the query")
     #q.pause()
@@ -40,5 +40,8 @@ if __name__ == '__main__':
     #exit(0)
     compute = ComputeCommand()
     compute.add_compute_command(ComputeCommand.AVERAGE, 5)
-    q = QueryClient("test/test/1", 0, 100, "test", "SQL", True, compute.to_obj())
+    q = QueryClient("test")
+    q.add_query("SQL", "test/test/1", 0, 20,True, compute.to_obj())
+    q.on_message = lambda a, b : print(b)
+    q.connect()
     time.sleep(5)

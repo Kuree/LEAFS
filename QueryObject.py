@@ -69,6 +69,7 @@ class QueryObject:
             self.request_id  = None
             self.topic = None
             self.persistent = None
+            self.db_tag = None
             return
         data = json.loads(data) if isinstance(data, str) else json.loads(data.decode())
         self.start = data["start"]
@@ -76,6 +77,7 @@ class QueryObject:
         self.request_id = api_key + "/" + str(query_id)
         self.end = data["end"]
         self.persistent = data["persistent"]
+        self.db_tag = data["db-tag"]
 
         self.compute = data["compute"] if "compute" in data else None
 
@@ -92,6 +94,7 @@ class QueryObject:
         result["current"] = self.current if self.current is not None else self.end
         result['end'] = self.end
         result["persistent"] = self.persistent
+        result["db-tag"] = self.db_tag
         if self.needs_compute():
             result["compute"] = self.compute
         return result
@@ -100,7 +103,7 @@ class QueryObject:
         return self.compute is not None
 
     @staticmethod
-    def create_query_obj(topic, start, end, persistent, api_key, query_id, compute = None):
+    def create_query_obj(db_tag, topic, start, end, persistent, api_key, query_id, compute = None):
         '''
             A factory method to create query object
             start: epoch time stamp
@@ -109,6 +112,7 @@ class QueryObject:
             id: unique query id for identification
         '''
         result = QueryObject(None, None, None)
+        result.db_tag = db_tag
         result.start = start
         result.end = end
         result.topic = topic

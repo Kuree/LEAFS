@@ -61,11 +61,12 @@ class WindowAgent:
             stream_command_list = self._topic_request_dict[topic]
             for stream_command in stream_command_list:
                 # check if we needs to send the data to client/compute system
-                interval = stream_command.compute_command["arg"][0] if stream_command.compute_command is not None else 1
-                if stream_command.data[0][0] < stream_command.data[-1][0] + interval:
+                # TODO: make this more reliable
+                interval = stream_command.compute_command[0]["arg"][0] if stream_command.compute_command is not None else 1
+                if len(stream_command.data) > 0 and stream_command.data[0][0] + interval <= timestamp:
                     request_id = stream_command.api_key + "/" + stream_command.query_id
                     if stream_command.compute_command is not None:
-                        query = {"data" : stream_command.data, "compute" : stream_command.compute_command.create_stream_obj()}
+                        query = {"data" : stream_command.data, "compute" : stream_command.compute_command}
                         publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=WindowAgent._HOSTNAME)
                     else:
                         publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id,
@@ -73,7 +74,8 @@ class WindowAgent:
 
                     # empty the list for the next interval
                     # and then add the data
-                    stream_command.data = [(timestamp, value)]
+                    stream_command.data = []
+                stream_command.data.append((timestamp, value))
 
                    
 if __name__ == "__main__":
