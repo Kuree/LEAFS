@@ -21,6 +21,23 @@ class ComputeCommand:
         return self.commands
 
 
+class QueryCommand:
+    '''
+        Query command class used by the query system to control the state of query stream
+    '''
+    _START = 0
+    _PAUSE = 1
+    _DELETE = 2
+
+    def __init__(self, request_id, command):
+        '''
+        Initialize the query command object
+        request_id: query id that's used in query system. in the system it's KEY/ID
+        command: indicates the state of the query object
+        '''
+        self._request_id = request_id
+        self._command = int(command)
+
 
 class QueryStreamObject:
     def __init__(self, strData, api_key, query_id):

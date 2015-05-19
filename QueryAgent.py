@@ -3,26 +3,7 @@ import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import json, time, logging
 from LoggingHelper import log
-from QueryObject import QueryStreamObject
-
-class QueryCommand:
-    '''
-        Query command class used by the query system to control the state of query stream
-    '''
-    _START = 0
-    _PAUSE = 1
-    _DELETE = 2
-
-    def __init__(self, request_id, command, topic):
-        '''
-        Initialize the query command object
-        request_id: query id that's used in query system. in the system it's KEY/ID
-        command: indicates the state of the query object
-        topic: the destination topic, i.e. DB/Query/Result/API_KEY/ID
-        '''
-        self._request_id = request_id
-        self._command = int(command)
-        self._topic = topic
+from QueryObject import QueryStreamObject, QueryCommand, QueryObject
 
 
 class QueryAgent:
@@ -116,7 +97,6 @@ class QueryAgent:
         '''
         Handle in coming new query request
         '''
-        from QueryObject import QueryObject
         log(logging.INFO, "New query message: " +  msg.payload.decode())
         topic = msg.topic
         topics = topic.split("/")
@@ -145,7 +125,7 @@ class QueryAgent:
             #else:
                 # let the query agent to relay the message
                 self._query_relay_sub.subscribe(query_obj.topic)
-                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START, self._QUERY_RESULT_TOPIC_STRING + str(request_id))
+                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START)
 
         self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 

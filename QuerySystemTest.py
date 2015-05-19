@@ -13,7 +13,7 @@ def push_data_forever():
     while not should_stop:
         obj = {"Timestamp": count, "Value": 1}
         publish.single("test/test/1", json.dumps(obj), hostname="mqtt.bucknell.edu")
-        time.sleep(0.2)
+        time.sleep(0.1)
         count += 1
 
 def push_data_into_sql():
@@ -44,4 +44,13 @@ if __name__ == '__main__':
     q.add_query("SQL", "test/test/1", 0, 20,True, compute.to_obj())
     q.on_message = lambda a, b : print(b)
     q.connect()
-    time.sleep(5)
+    time.sleep(3)
+    q.pause()
+    print("pause")
+    time.sleep(1)
+    q.start()
+    print("start")
+    time.sleep(3)
+    q.delete()
+    print("delete")
+    time.sleep(3)
