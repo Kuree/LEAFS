@@ -3,6 +3,7 @@ import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import json, time, logging
 from LoggingHelper import log
+from QueryObject import QueryStreamObject
 
 class QueryCommand:
     '''
@@ -43,6 +44,7 @@ class QueryAgent:
         self._QUERY_COMMAND_TOPIC_STRING = self._DATABASE_TAG + "/Query/Command/+/+"
         self._QUERY_RESULT_TOPIC_STRING = self._DATABASE_TAG + "/Query/Result/"
         self._COMPUTE_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Compute/"
+        self._WINDOW_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Window/"
 
         # TODO: need to improve this import part
         from MongoDB import MongoDBClient
@@ -124,6 +126,7 @@ class QueryAgent:
             return
         api_key = topics[-2]
         query_id = topics[-1]
+        db_tag = topics[0]
         request_id = api_key + "/" + query_id
         query_obj = QueryObject(msg.payload.decode(), api_key, query_id)
 
@@ -138,15 +141,12 @@ class QueryAgent:
             self._query_relay_sub.subscribe(query_obj.topic)
             self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START, self._QUERY_RESULT_TOPIC_STRING + str(request_id))
 
+            # register it in the window system
+            if query_obj.compute is not None:
+                stream_obj = QueryStreamObject.create_stream_obj(api_key, query_id, query_obj.topic, db_tag, query_obj.compute)
+                publish.single(self._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
 
-        self._handle_quer_request(query_obj.compute, request_id, query_obj.start, query_obj.end)
-        # let the underlying database system handle it
-        #raw_data = self._query_data(query_obj.topic, query_obj.start, query_obj.end)
-        #if query_obj.compute is None: 
-        #    publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
-        #else:
-        #    query = {"data" : raw_data, "compute" : query_obj.compute}
-        #    publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=self._HOSTNAME)
+        self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 
     def _query_data(self, sopic, start, end):
         # This method needs to be overridden for any real database agent
@@ -207,14 +207,14 @@ class QueryAgent:
             # need to check the commpute
             request_id = db_entry["id"]
             if "compute" in db_entry:
-                self._handle_quer_request(self._query_command_dict[request_id].compute, request_id, start, end)
+                self._handle_query_request(self._query_command_dict[request_id].compute, request_id, start, end)
             else:
-                self._handle_quer_request(None, request_id, start, end)
+                self._handle_query_request(db_entry["topid"], None, request_id, start, end)
             
 
-    def _handle_quer_request(self, compute, request_id, start, end):
+    def _handle_query_request(self, topic, compute, request_id, start, end):
         # let the underlying database system handle it
-        raw_Data = raw_data = self._query_data(query_obj.topic, query_obj.start, query_obj.end)
+        raw_data = self._query_data(topic, start, end)
         if compute is None:
             publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
         else:
@@ -253,9 +253,3 @@ class QueryAgent:
     def _query_db(topic, start, end):
         return queryData(topic, start, end)
 
-
-
-
-
-if __name__ == "__main__":
-    q = QueryAgent("SQL", True)

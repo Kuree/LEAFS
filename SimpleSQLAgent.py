@@ -18,7 +18,7 @@ class SQLAgent(QueryAgent):
         super().__init__("SQL", block_current_thread)
 
 
-    def handle_query_request(self, topic, start, end):
+    def _query_data(self, topic, start, end):
         query = (topic, start, end)
         self.cursor.execute('select * from WaterLevel where SensorName=? and time >= ? and time <= ?', query)
         result = []

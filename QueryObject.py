@@ -17,7 +17,7 @@ class ComputeCommand:
     def add_compute_command(self, type, interval = None):
         self.commands.append({"name" : type, "arg" : [interval] if interval is not None else []})
 
-    def to_compute_obj(self):
+    def to_obj(self):
         return self.commands
 
 
@@ -33,22 +33,25 @@ class QueryStreamObject:
             self.topic = None
             # this tag is only used for return data topic. therefore the client can only subscribe one topic for query result
             self.db_tag = None  
+            self.data = []
         else:
             raw_data = json.loads(strData)
             self.compute_command = raw_data["compute"]
             self.db_tag = raw_data["db-tag"]
-            self.topic = None
+            self.topic = raw_data["topic"]
+            self.data = raw_data["data"]
 
     def to_object(self):
-        return {"compute": self.compute_command, "db-tag" : self.db_tag}
+        return {"compute": self.compute_command, "db-tag" : self.db_tag, "data" : self.data, "topic" : self.topic}
 
     @staticmethod
-    def create_stream_obj(api_eky, query_id, compute, topic):
-        result = QueryStreamObject()
-        result.api_key = api_eky
-        result.query_id = query_id
-        result.compute_command = compute
+    def create_stream_obj(api_key, query_id, topic, db_tag, compute = None ):
+        result = QueryStreamObject(None, api_key, query_id)
+        result.compute_command = compute if compute is not None else None
         result.topic = topic
+        result.data = []
+        result.db_tag = db_tag
+        return result
 
 class QueryObject:
     def __init__(self, data, api_key, query_id):
