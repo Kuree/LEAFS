@@ -70,17 +70,15 @@ class QueryAgent:
 
         self._query_relay_sub = Client()
         self._query_relay_sub.on_message = self._message_relay
-        self._query_relay_sub.connect(self._HOSTNAME)
+        self._query_relay_sub.connect(self._HOSTNAME)        
 
-        if block_current_thread:
-            self._query_request_sub.loop_forever()
-            self._command_sub.loop_forever()
-            self._query_relay_sub.loop_forever()
-        else:
-            # start the loop in the background
-            self._query_request_sub.loop_start()
-            self._command_sub.loop_start()
-            self._query_relay_sub.loop_start() 
+        
+        # start the loop in the background
+        self._query_request_sub.loop_start()
+        self._command_sub.loop_start()
+        self._query_relay_sub.loop_start() 
+        while True:
+            time.sleep(100)
 
 
     def _message_relay(self, mqttc, obj, msg):
@@ -135,21 +133,22 @@ class QueryAgent:
         self.add_streaming_query(query_obj.topic, request_id)
 
         if query_obj.persistent:
-            # because it is persistent, we need to store the data
+            # because it is persistent, we need to store the query information
             self._mongodb.add(query_obj)            
             self._query_relay_sub.subscribe(query_obj.topic)
             self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START, self._QUERY_RESULT_TOPIC_STRING + str(request_id))
 
-        # let the underlying database system handle it
-        raw_data = self.handle_query_request(query_obj.topic, query_obj.start, query_obj.end)
-        if query_obj.compute is None: 
-            publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
-        else:
-            query = {"data" : raw_data, "compute" : query_obj.compute}
-            publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=self._HOSTNAME)
-        #publish.single(QueryAgent._QUERY_DATABASE_TOPIC_STRING + str(request_id), json.dumps(query_obj.to_object()), hostname=QueryAgent._HOSTNAME)
 
-    def handle_query_request(self, sopic, start, end):
+        self._handle_quer_request(query_obj.compute, request_id, query_obj.start, query_obj.end)
+        # let the underlying database system handle it
+        #raw_data = self._query_data(query_obj.topic, query_obj.start, query_obj.end)
+        #if query_obj.compute is None: 
+        #    publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
+        #else:
+        #    query = {"data" : raw_data, "compute" : query_obj.compute}
+        #    publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=self._HOSTNAME)
+
+    def _query_data(self, sopic, start, end):
         # This method needs to be overridden for any real database agent
         return []
 
@@ -205,13 +204,28 @@ class QueryAgent:
             db_entry["end"] = end
             self._mongodb.add(db_entry)
             log(logging.INFO, "Resume query " +  "{0:d} {1:d}".format(start, end))
-            QueryAgent._send_query_data(db_entry["topic"], start, end, request_id)
+            # need to check the commpute
+            request_id = db_entry["id"]
+            if "compute" in db_entry:
+                self._handle_quer_request(self._query_command_dict[request_id].compute, request_id, start, end)
+            else:
+                self._handle_quer_request(None, request_id, start, end)
+            
 
+    def _handle_quer_request(self, compute, request_id, start, end):
+        # let the underlying database system handle it
+        raw_Data = raw_data = self._query_data(query_obj.topic, query_obj.start, query_obj.end)
+        if compute is None:
+            publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
+        else:
+            query = {"data" : raw_data, "compute" : compute}
+            publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=self._HOSTNAME)
+        return
 
     def _command_on_message(self, mqttc, obj, msg):
         payload = msg.payload.decode()
         topics = msg.topic.split("/")
-        if len(topics) != 3:
+        if len(topics) != 5:
             log(logging.ERROR, "Incorrect command request")
             return
         request_id = topics[-2] + "/" +  topics[-1]
@@ -243,6 +257,5 @@ class QueryAgent:
 
 
 
-
-
-
+if __name__ == "__main__":
+    q = QueryAgent("SQL", True)

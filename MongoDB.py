@@ -17,21 +17,21 @@ class MongoDBClient:
         add or update the data to mongodb
         '''
         if isinstance(data, QueryObject):
-            self.db.query.update({"id": data.id}, data.to_object(), upsert=True)
+            self.db.query.update({"id": data.request_id}, data.to_object(), upsert=True)
         else:
              self.db.query.update({"id": data["id"]}, data, upsert=True)
 
-    def find_by_id(self, id):
+    def find_by_id(self, request_id):
         '''
         Return the document from given query id
         '''
-        return self.db.query.find_one({"id":id})
+        return self.db.query.find_one({"id":request_id})
 
-    def delete_by_id(self, id):
+    def delete_by_id(self, request_id):
         '''
         Delete the query  from given query id
         '''
-        self.db.query.delete_one({"id" : int(id)})
+        self.db.query.delete_one({"id" : request_id})
 
 if __name__ == "__main__":
     mongo = MongoDBClient()

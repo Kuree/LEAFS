@@ -2,7 +2,7 @@ import json, logging
 from LoggingHelper import log
 
 
-class QueryCommand:
+class ComputeCommand:
     AVERAGE = "avg"
     SUM = "sum"
     MAX = "max"
@@ -19,6 +19,36 @@ class QueryCommand:
 
     def to_compute_obj(self):
         return self.commands
+
+
+
+class QueryStreamObject:
+    def __init__(self, strData, api_key, query_id):
+        self.api_key = api_key
+        self.query_id = query_id
+
+        if strData is None:
+            # create an empty query stream object
+            self.compute_command = None
+            self.topic = None
+            # this tag is only used for return data topic. therefore the client can only subscribe one topic for query result
+            self.db_tag = None  
+        else:
+            raw_data = json.loads(strData)
+            self.compute_command = raw_data["compute"]
+            self.db_tag = raw_data["db-tag"]
+            self.topic = None
+
+    def to_object(self):
+        return {"compute": self.compute_command, "db-tag" : self.db_tag}
+
+    @staticmethod
+    def create_stream_obj(api_eky, query_id, compute, topic):
+        result = QueryStreamObject()
+        result.api_key = api_eky
+        result.query_id = query_id
+        result.compute_command = compute
+        result.topic = topic
 
 class QueryObject:
     def __init__(self, data, api_key, query_id):
