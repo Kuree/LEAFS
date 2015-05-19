@@ -2,6 +2,7 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 import random, json
 from QueryObject import QueryObject, QueryStreamObject
+from LoggingHelper import logger
 
 
 class QueryClient:
@@ -83,7 +84,6 @@ class QueryClient:
         self.__handle_command(QueryClient._DELETE)
 
     def _on_receive_message(self, mqttc, obj, msg):
-        #log(logging.DEBUG, "Received message: " + msg.payload.decode())
         self.on_message(msg.topic, msg.payload.decode())
 
     def connect(self):

@@ -2,7 +2,7 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 import threading, math
 import json, time, logging
-from LoggingHelper import log
+from LoggingHelper import logger
 from functools import reduce
 
 
@@ -82,8 +82,7 @@ class ComputeAgent:
 
     def _on_compute_message(self, mqttc, obj, msg):
         topics = msg.topic.split("/")
-        # TODO: need to switch to log
-        assert len(topics) == 5, "A standard request should have 5 levels"
+        if len(topics) != 5: logger.log(logging.WARN, "A standard request should have 5 levels")
         db_tag = topics[0]
 
         message = json.loads(msg.payload.decode())

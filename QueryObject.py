@@ -1,5 +1,5 @@
 import json, logging
-from LoggingHelper import log
+from LoggingHelper import logger
 
 
 class ComputeCommand:
@@ -77,7 +77,7 @@ class QueryObject:
             data: serialized query object
             id: unique query id
         '''
-        log(logging.DEBUG, "Query object created from string: " + str(data))
+        logger.log(logging.DEBUG, "Query object created from string: " + str(data))
         self.current = None
         if data is None:
             # this creates an empty object
@@ -136,5 +136,5 @@ class QueryObject:
         result.request_id = api_key + "/" + str(query_id)
         result.persistent = persistent
         result.compute = None
-        print("Query object created", result.to_object())
+        logger.log(logging.INFO, "Query object created", result.to_object())
         return result

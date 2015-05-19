@@ -2,7 +2,7 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import json, time, logging
-from LoggingHelper import log
+from LoggingHelper import logger as logger
 from QueryObject import QueryStreamObject, QueryCommand, QueryObject
 
 
@@ -67,7 +67,7 @@ class QueryAgent:
         '''
         Forward the message to streaming topic with query id
         '''
-        log(logging.DEBUG, "message relay: " +  msg.payload.decode())
+        logger.log(logging.DEBUG, "message relay: " +  msg.payload.decode())
         topic = msg.topic
         if topic not in self._topic_id_dict:
             return # no client subscribe to it
@@ -82,7 +82,7 @@ class QueryAgent:
             self._update_current_time(request_id, current)
 
             if request_id not in self._query_command_dict: 
-                log(logging.ERROR, "Zero query subscriber, but still subscribed to incoming message")
+                logger.log(logging.ERROR, "Zero query subscriber, but still subscribed to incoming message")
                 return # shouldn't hit here, but just in case
 
             # get the command object from in memory document
@@ -97,11 +97,11 @@ class QueryAgent:
         '''
         Handle in coming new query request
         '''
-        log(logging.INFO, "New query message: " +  msg.payload.decode())
+        logger.log(logging.INFO, "New query message: " +  msg.payload.decode())
         topic = msg.topic
         topics = topic.split("/")
         if len(topics) != 5: 
-            log(logging.ERROR, "Incorrect query request")
+            logger.log(logging.ERROR, "Incorrect query request")
             return
         api_key = topics[-2]
         query_id = topics[-1]
@@ -109,7 +109,7 @@ class QueryAgent:
         request_id = api_key + "/" + query_id
         query_obj = QueryObject(msg.payload.decode(), api_key, query_id)
 
-        log(logging.INFO, "Query message: " +  json.dumps(query_obj.to_object()))
+        logger.log(logging.INFO, "Query message: " +  json.dumps(query_obj.to_object()))
 
         # record the topic as well as query id
         self.add_streaming_query(query_obj.topic, request_id)
@@ -168,7 +168,7 @@ class QueryAgent:
                 if request_id in self._topic_id_dict[key]:
                     query_topic = key
             if query_topic is None:
-                log(logging.ERROR, "Could not find query id for deleting query object. Query ID: " +  str(request_id))
+                logger.log(logging.ERROR, "Could not find query id for deleting query object. Query ID: " +  str(request_id))
                 return
             self._topic_id_dict[query_topic].remove(request_id)
             if len(self._topic_id_dict[query_topic]) == 0:
@@ -184,7 +184,7 @@ class QueryAgent:
             db_entry["start"] = start
             db_entry["end"] = end
             self._mongodb.add(db_entry)
-            log(logging.INFO, "Resume query " +  "{0:d} {1:d}".format(start, end))
+            logger.log(logging.INFO, "Resume query " +  "{0:d} {1:d}".format(start, end))
             # need to check the commpute
             request_id = db_entry["id"]
             if "compute" in db_entry:
@@ -207,7 +207,7 @@ class QueryAgent:
         payload = msg.payload.decode()
         topics = msg.topic.split("/")
         if len(topics) != 5:
-            log(logging.ERROR, "Incorrect command request")
+            logger.log(logging.ERROR, "Incorrect command request")
             return
         request_id = topics[-2] + "/" +  topics[-1]
         command = int(msg.payload)
@@ -216,7 +216,7 @@ class QueryAgent:
     def _update_db_end(self, request_id, end):
         query_obj = self._mongodb.find_by_id(request_id)
         if query_obj is None: 
-            log(logging.ERROR, "Could not find query id for updating end time. Query ID: " +  str(request_id))
+            logger.log(logging.ERROR, "Could not find query id for updating end time. Query ID: " +  str(request_id))
             return
         query_obj["end"] = end
         self._mongodb.add(query_obj)
@@ -225,7 +225,7 @@ class QueryAgent:
     def _update_current_time(self, request_id, current):
         query_obj = self._mongodb.find_by_id(request_id)
         if query_obj is None:
-            log(logging.ERROR, "Could not find query id for updating current time. Query id: " +  str(request_id))
+            logger.log(logging.ERROR, "Could not find query id for updating current time. Query id: " +  str(request_id))
             return
         query_obj["current"] = current
         self._mongodb.add(query_obj)

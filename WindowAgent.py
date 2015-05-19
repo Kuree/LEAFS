@@ -1,7 +1,8 @@
-import sqlite3, json, time
+import sqlite3, json, time, logging
 from paho.mqtt.client import Client
 from QueryObject import QueryStreamObject, QueryCommand
 from paho.mqtt import publish
+from LoggingHelper import logger
 
 
 class WindowAgent:
@@ -72,8 +73,7 @@ class WindowAgent:
     @staticmethod
     def get_query_client_info(topic):
         topics = topic.split("/")
-        # TODO: replace this with log
-        assert len(topics) == 5, "Query should have 5 levels"
+        if len(topics) != 5:  logger.log(logging.WARN, "Query should have 5 levels")
         api_key = topics[-2]
         query_id = topics[-1]
         return api_key, query_id
