@@ -3,20 +3,20 @@ import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import json, time, logging
 from LoggingHelper import logger as logger
-from QueryObject import QueryStreamObject, QueryCommand, QueryObject
+from QueryObject import QueryCommand, QueryObject
 
 
 class QueryAgent:
-    '''
+    """
     A query handling system that supports querying history data as well as streaming data.
     Users can pause and resume the stream.
-    '''
+    """
     
 
     def __init__(self, db_tag, block_current_thread = False):
-        '''
+        """
         Initialize the query system. If block_current_thread is set to True, then it will block the current thread
-        '''
+        """
 
         # declare the constants
         self._HOSTNAME = "mqtt.bucknell.edu"
@@ -59,9 +59,9 @@ class QueryAgent:
 
 
     def _message_relay(self, mqttc, obj, msg):
-        '''
+        """
         Forward the message to streaming topic with query id
-        '''
+        """
         logger.log(logging.DEBUG, "message relay: " +  msg.payload.decode())
         topic = msg.topic
         if topic not in self._topic_id_dict:
@@ -84,14 +84,14 @@ class QueryAgent:
             command_obj = self._query_command_dict[request_id]
 
             # if the client requests streaming data
-            if command_obj._command == QueryCommand._START:
+            if command_obj._command == QueryCommand.START:
                 publish.single(command_obj._topic, raw_data, hostname=self._HOSTNAME)
                 self._update_db_end(request_id, current)
 
     def _new_query_on_message(self, mqttc, obj, msg):
-        '''
+        """
         Handle in coming new query request
-        '''
+        """
         logger.log(logging.INFO, "New query message: " +  msg.payload.decode())
         topic = msg.topic
         topics = topic.split("/")
@@ -115,25 +115,22 @@ class QueryAgent:
 
             # register it in the window system
             if query_obj.compute is None:
-                #stream_obj = QueryStreamObject.create_stream_obj(api_key, query_id, query_obj.topic, db_tag, query_obj.compute)
-                #publish.single(self._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
-            #else:
                 # let the query agent to relay the message
                 self._query_relay_sub.subscribe(query_obj.topic)
-                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand._START)
+                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand.START)
 
         self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 
-    def _query_data(self, sopic, start, end):
+    def _query_data(self, topic, start, end):
         # This method needs to be overridden for any real database agent
         return []
 
     def add_streaming_query(self, topic, request_id):
-        '''
+        """
         Add request_id and topic to the system manually
         topic: streaming topic to listen to
         request_id: unique request id: API_KEY/ID
-        '''
+        """
         if topic in self._topic_id_dict:
             self._topic_id_dict[topic].append(request_id)
         else:
@@ -145,12 +142,10 @@ class QueryAgent:
             return
         command = int(command)
         query_command = self._query_command_dict[request_id]
-        if command == QueryCommand._PAUSE:
+        if command == QueryCommand.PAUSE:
             query_command._command = command
             return
-        elif command == QueryCommand._DELETE:
-            
-
+        elif command == QueryCommand.DELETE:
             # delete the query object from mongodb
             self._mongodb.delete_by_id(request_id)
 
@@ -171,7 +166,7 @@ class QueryAgent:
                 del self._topic_id_dict[query_topic]
                 # remove the topic from subscription
             self._query_relay_sub.unsubscribe(query_topic)
-        elif command == QueryCommand._START:
+        elif command == QueryCommand.START:
             query_command._command = command
             db_entry = self._mongodb.find_by_id(request_id)
             start = db_entry["end"]
@@ -179,13 +174,13 @@ class QueryAgent:
             db_entry["start"] = start
             db_entry["end"] = end
             self._mongodb.add(db_entry)
-            logger.log(logging.INFO, "Resume query " +  "{0:d} {1:d}".format(start, end))
-            # need to check the commpute
+            logger.log(logging.INFO, "Resume query " + "{0:d} {1:d}".format(start, end))
+            # need to check the compute
             request_id = db_entry["id"]
             if "compute" in db_entry:
                 self._handle_query_request(self._query_command_dict[request_id].compute, request_id, start, end)
             else:
-                self._handle_query_request(db_entry["topid"], None, request_id, start, end)
+                self._handle_query_request(db_entry["topic"], None, request_id, start, end)
             
 
     def _handle_query_request(self, topic, compute, request_id, start, end):

@@ -1,6 +1,7 @@
 from paho.mqtt.client import Client
 import time, json, logging
 
+
 class LoggingAgent:
 
     _LOG_TOPIC_STRING = ["Query/Log", "+/Query/+/+/+"]

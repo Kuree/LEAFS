@@ -22,19 +22,19 @@ class ComputeCommand:
 
 
 class QueryCommand:
-    '''
+    """
         Query command class used by the query system to control the state of query stream
-    '''
-    _START = 0
-    _PAUSE = 1
-    _DELETE = 2
+    """
+    START = 0
+    PAUSE = 1
+    DELETE = 2
 
     def __init__(self, request_id, command):
-        '''
+        """
         Initialize the query command object
         request_id: query id that's used in query system. in the system it's KEY/ID
         command: indicates the state of the query object
-        '''
+        """
         self._request_id = request_id
         self._command = int(command)
 
@@ -72,11 +72,11 @@ class QueryStreamObject:
 
 class QueryObject:
     def __init__(self, data, api_key, query_id):
-        '''
+        """
             Initialize the query object with string sent from network
             data: serialized query object
             id: unique query id
-        '''
+        """
         logger.log(logging.DEBUG, "Query object created from string: " + str(data))
         self.current = None
         if data is None:
@@ -101,9 +101,9 @@ class QueryObject:
         # TODO: existing implementation assume user provides end
 
     def to_object(self):
-        '''
+        """
             Convert the object into dictionary object
-        '''
+        """
         result = {}
         result["start"] = self.start
         result["topic"] = self.topic
@@ -121,13 +121,13 @@ class QueryObject:
 
     @staticmethod
     def create_query_obj(db_tag, topic, start, end, persistent, api_key, query_id, compute = None):
-        '''
+        """
             A factory method to create query object
             start: epoch time stamp
             end: epoch time stamp
             persistent: set to True if streaming data is required
             id: unique query id for identification
-        '''
+        """
         result = QueryObject(None, None, None)
         result.db_tag = db_tag
         result.start = start

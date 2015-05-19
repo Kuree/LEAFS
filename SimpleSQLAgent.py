@@ -1,14 +1,11 @@
-from paho.mqtt.client import Client
-import sqlite3, json
-from QueryObject import QueryObject
-import paho.mqtt.publish as publish
+import sqlite3
 from QueryAgent import QueryAgent
 
 
 class SQLAgent(QueryAgent):
-    '''
+    """
     A simple SQLite adapter to handle in coming queries
-    '''
+    """
 
     def __init__(self, block_current_thread = False):
         # initialize the sqlite connection
@@ -16,7 +13,6 @@ class SQLAgent(QueryAgent):
         self.cursor = self.connection.cursor()
 
         super().__init__("SQL", block_current_thread)
-
 
     def _query_data(self, topic, start, end):
         query = (topic, start, end)

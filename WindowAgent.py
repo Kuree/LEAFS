@@ -1,4 +1,4 @@
-import sqlite3, json, time, logging
+import json, time, logging
 from paho.mqtt.client import Client
 from QueryObject import QueryStreamObject, QueryCommand
 from paho.mqtt import publish
@@ -6,9 +6,9 @@ from LoggingHelper import logger
 
 
 class WindowAgent:
-    '''
+    """
     Only new window request will go though this agent
-    '''
+    """
 
     _WINDOW_TOPIC_STRING = "+/Query/Window/+/+"
     _COMMAND_TOPIC_STRING = "+/Query/Command/+/+"
@@ -17,7 +17,7 @@ class WindowAgent:
     _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
 
     def __init__(self, block_current_thread = False):
-        '''Initialize the window agent'''
+        """Initialize the window agent"""
         self._stream_request_sub = Client()
         self._stream_request_sub.on_message = self.on_window_message
         self._stream_request_sub.connect(WindowAgent._HOSTNAME)
@@ -39,10 +39,8 @@ class WindowAgent:
 
         self.block_current_thread = block_current_thread
 
-
-
     def _on_command_message(self, mqttc, obj, msg):
-        '''Handle the stream command like START and PAUSE'''
+        """Handle the stream command like START and PAUSE"""
         api_key, query_id = WindowAgent.get_query_client_info(msg.topic)
         request_id = api_key + "/" + query_id
         query_command = QueryCommand(request_id, int(msg.payload))
@@ -50,10 +48,10 @@ class WindowAgent:
             if query_command != self._stream_command[request_id]:
                 self._stream_command[request_id] = query_command._command
                 topic, stream = self.find_stream_command(api_key, query_id)
-                if query_command._command == QueryCommand._PAUSE:
+                if query_command._command == QueryCommand.PAUSE:
                     if stream is not None:
                         stream.data = [] # clear old data because next time it starts, the data is not streaming any more
-                elif query_command._command == QueryCommand._DELETE:
+                elif query_command._command == QueryCommand.DELETE:
                     # delete the stuff
                     if topic is not None:
                         self._topic_request_dict[topic].remove(stream)
@@ -76,16 +74,16 @@ class WindowAgent:
         return api_key, query_id
 
     def on_window_message(self, mqttc, obj, msg):
-        '''
+        """
         Handle the window request message. It will keep the interested topic into memory so that later on
         when streaming message arrives it can perform window task.
-        '''
+        """
         api_key, query_id = WindowAgent.get_query_client_info(msg.topic)
         stream_command = QueryStreamObject(msg.payload.decode(), api_key, query_id)
         request_id = api_key + "/" + query_id
         stream_topic = stream_command.topic
 
-        self._stream_command[request_id] = QueryCommand._START
+        self._stream_command[request_id] = QueryCommand.START
 
         # db check
         if stream_topic in self._topic_request_dict:
@@ -95,19 +93,19 @@ class WindowAgent:
             self._stream_sub.subscribe(stream_command.topic)            
 
     def _get_list_copy(self, lst):
-        '''
+        """
         A helper function to deal with multi-threading list change
-        '''
+        """
         result = []
         for entry in lst:
             result.append(entry)
         return result
 
     def on_stream_message(self, mqttc, obj, msg):
-        '''
+        """
         Handle the streaming message. It will look up the streaming command table and see if the data should be kept
         in memory to perform window task.
-        '''
+        """
         topic = msg.topic
         data_dict = json.loads(msg.payload.decode())
         timestamp, value = data_dict["Timestamp"], data_dict["Value"]
@@ -118,7 +116,7 @@ class WindowAgent:
                 # check if we needs to send the data to client/compute system
                 # TODO: make this more reliable
                 request_id = stream_command.api_key + "/" + stream_command.query_id
-                if self._stream_command[request_id] != QueryCommand._START: continue # skip over the non-start command
+                if self._stream_command[request_id] != QueryCommand.START: continue # skip over the non-start command
 
                 # get the interval
                 # there might be better way to do it...
@@ -138,10 +136,10 @@ class WindowAgent:
 
 
     def connect(self):
-        '''
+        """
         Call this function if you want to start the window agent
         Note: if you want to change the behavior of the window agent, you can replace the on_message methods
-        '''
+        """
         self._stream_request_sub.loop_start()
         self._stream_sub.loop_start()
         self._command_sub.loop_start()
