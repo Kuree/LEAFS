@@ -43,6 +43,7 @@ class QueryStreamObject:
     def __init__(self, strData, api_key, query_id):
         self.api_key = api_key
         self.query_id = query_id
+        self.request_id = self.api_key + "/" + self.query_id
 
         if strData is None:
             # create an empty query stream object
@@ -52,14 +53,14 @@ class QueryStreamObject:
             self.db_tag = None  
             self.data = []
         else:
-            raw_data = json.loads(strData)
+            raw_data = json.loads(strData) if isinstance(strData, str) else strData
             self.compute_command = raw_data["compute"]
             self.db_tag = raw_data["db-tag"]
             self.topic = raw_data["topic"]
             self.data = raw_data["data"]
 
     def to_object(self):
-        return {"compute": self.compute_command, "db-tag" : self.db_tag, "data" : self.data, "topic" : self.topic}
+        return {"compute": self.compute_command, "db-tag" : self.db_tag, "data" : self.data, "topic" : self.topic, "request_id" : self.request_id}
 
     @staticmethod
     def create_stream_obj(api_key, query_id, topic, db_tag, compute = None ):

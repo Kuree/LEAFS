@@ -3,7 +3,7 @@ from paho.mqtt.client import Client
 from QueryObject import QueryStreamObject, QueryCommand
 from paho.mqtt import publish
 from LoggingHelper import logger
-
+from MongoDB import MongoDBClient
 
 class WindowAgent:
     """
@@ -32,10 +32,27 @@ class WindowAgent:
         self._command_sub.connect(WindowAgent._HOSTNAME)
         self._command_sub.subscribe(WindowAgent._COMMAND_TOPIC_STRING)
 
-
         # TODO: currently is a in-memory db. need to replace it with a on disk database
+        self._mongodb = MongoDBClient()
+
         self._topic_request_dict = {}
         self._stream_command = {}   # handle the streaming command
+
+        # restore the in memory database
+        for topic, request_id, streams in self._mongodb.get_all_topic_stream():
+            for stream in streams:
+                topics = request_id.split("/")
+                api_key = topics[0]
+                query_id = topics[1]
+                stream_command = QueryStreamObject(stream, api_key, query_id)
+                if topic not in self._topic_request_dict:
+                    self._topic_request_dict[topic] = [stream_command]
+                else:
+                    self._topic_request_dict[topic].append(stream_command)
+
+        for request_id, command in self._mongodb.get_all_command():
+            self._stream_command[request_id] = command
+
 
         self.block_current_thread = block_current_thread
 
@@ -47,6 +64,7 @@ class WindowAgent:
         if request_id in self._stream_command:
             if query_command != self._stream_command[request_id]:
                 self._stream_command[request_id] = query_command._command
+                self._mongodb.update_command(request_id, query_command._command)
                 topic, stream = self.find_stream_command(api_key, query_id)
                 if query_command._command == QueryCommand.PAUSE:
                     if stream is not None:
@@ -57,6 +75,12 @@ class WindowAgent:
                         self._topic_request_dict[topic].remove(stream)
                         del self._stream_command[request_id]
 
+                        self._mongodb.delete_command(request_id)
+                        self._mongodb.delete_single_topic_stream(topic)
+
+                        if self._mongodb.count_topic_stream(topic) == 0:
+                            self._mongodb.delete_all_topic_stream(topic)
+                        
 
     def find_stream_command(self, api_key, query_id):
         for topic in self._topic_request_dict:
@@ -84,13 +108,16 @@ class WindowAgent:
         stream_topic = stream_command.topic
 
         self._stream_command[request_id] = QueryCommand.START
+        self._mongodb.add_stream_command(request_id, QueryCommand.START)
 
         # db check
         if stream_topic in self._topic_request_dict:
             self._topic_request_dict[stream_topic].append(stream_command)
         else:
             self._topic_request_dict[stream_topic] = [stream_command]
-            self._stream_sub.subscribe(stream_command.topic)            
+            self._stream_sub.subscribe(stream_command.topic)     
+
+        self._mongodb.add_topic_stream(stream_topic, request_id, stream_command.to_object())       
 
     def _get_list_copy(self, lst):
         """
@@ -143,7 +170,13 @@ class WindowAgent:
         self._stream_request_sub.loop_start()
         self._stream_sub.loop_start()
         self._command_sub.loop_start()
-        
+
+        for topic in self._topic_request_dict:
+            for stream_command in self._topic_request_dict[topic]:
+                self._stream_sub.subscribe(stream_command.topic)
+
+
+
         if self.block_current_thread:
             # block the current thread
             while True:

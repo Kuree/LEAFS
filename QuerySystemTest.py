@@ -51,6 +51,6 @@ if __name__ == '__main__':
     q.start()
     print("start")
     time.sleep(3)
-    q.delete()
-    print("delete")
+    #q.delete()
+    #print("delete")
     time.sleep(3)
