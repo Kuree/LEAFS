@@ -11,7 +11,7 @@ should_stop = False
 def push_data_forever():
     count = 20
     while not should_stop:
-        obj = {"Timestamp": count, "Value": 1}
+        obj = (count, count - 20, count)
         publish.single("test/test/1", json.dumps(obj), hostname="mqtt.bucknell.edu")
         time.sleep(0.1)
         count += 1

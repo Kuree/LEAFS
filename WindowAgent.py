@@ -16,6 +16,9 @@ class WindowAgent:
     _HOSTNAME = "mqtt.bucknell.edu"
     _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
 
+
+    _MAX_QOS_0_WINDOW_SIZE = 2
+
     def __init__(self, block_current_thread = False):
         """Initialize the window agent"""
         self._stream_request_sub = Client()
@@ -52,6 +55,10 @@ class WindowAgent:
 
         for request_id, command in self._mongodb.get_all_command():
             self._stream_command[request_id] = command
+
+        # used for window buffering
+        # usage request_id as key 
+        self._window_buffer = {}
 
 
         self.block_current_thread = block_current_thread
@@ -134,8 +141,9 @@ class WindowAgent:
         in memory to perform window task.
         """
         topic = msg.topic
-        data_dict = json.loads(msg.payload.decode())
-        timestamp, value = data_dict["Timestamp"], data_dict["Value"]
+        qos = msg.qos
+        data_point = json.loads(msg.payload.decode())
+        timestamp, sequence_number, value = data_point
         if topic in self._topic_request_dict:
             # put the data into data store
             stream_command_list = self._topic_request_dict[topic]
@@ -148,19 +156,68 @@ class WindowAgent:
                 # get the interval
                 # there might be better way to do it...
                 interval = stream_command.compute_command[0]["arg"][0] if stream_command.compute_command is not None else 1
-                if len(stream_command.data) > 0 and stream_command.data[0][0] + interval <= timestamp:
+
+                # deal with window buffer now.
+                result = self.add_stream_data(stream_command, qos, data_point, interval, request_id)
+                if result is not None:
                     if stream_command.compute_command is not None:
-                        query = {"data" : stream_command.data, "compute" : stream_command.compute_command}
+                        query = {"data" : result, "compute" : stream_command.compute_command}
                         publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=WindowAgent._HOSTNAME)
                     else:
                         publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id,
-                                       json.dumps(stream_command.data), hostname=WindowAgent._HOSTNAME)
+                                       json.dumps(result), hostname=WindowAgent._HOSTNAME)
 
                     # empty the list for the next interval
                     # and then add the data
                     stream_command.data = []
-                stream_command.data.append((timestamp, value))
 
+    def add_stream_data(self, stream_command, qos, data_point, interval, request_id):
+        data_list = stream_command.data
+        if len(data_list) == 0:
+            # list is empty. cool.
+            stream_command.data.append(data_point)
+            return None
+        # we assume that the stream_command.data is already sorted by sequence number
+        sequence_number = data_point[1]
+        if sequence_number < data_list[-1][1]: # it is in the window
+            if qos != 2:
+                # check duplicated points
+                search = [x for x in data_list if x[1] == sequence_number]
+                if len(search) == 0: # this is duplicated points
+                    return None
+            data_list.append(data_point)
+            data_list.sort(key=lambda point: point[1]) # sort the list according to the sequence number
+            if data_list[0][0] + interval <= data_list[-1][0]:
+                # the window is full
+                return data_list
+            else:
+                return None
+        else:
+            # okay need to check if we need to send the window
+            if data_point[0] >= data_list[0][0] + interval:
+                # outside the window 
+                if request_id not in self._window_buffer: self._window_buffer[request_id] = []
+                self._window_buffer[request_id].append(data_point)
+                stream_command.data.sort(key=lambda x : x[1])
+                if qos == 0 and len(self._window_buffer[request_id]) > WindowAgent._MAX_QOS_0_WINDOW_SIZE:
+                    # okay something really messed up. need to return the window
+                    # the network might just got really slow
+                    result = stream_command.data
+                    stream_command.data = self._window_buffer[request_id]
+                    stream_command.data.sort(key=lambda x : x[1])
+                    self._window_buffer[request_id] = []
+                    # bump the buffer to the actual window and clear the window
+                    return result
+                else:
+                    # add it to the buffer
+                    self._window_buffer[request_id].append(data_point)
+                    return None
+            else:
+                # inside the window
+                data_list.append(data_point)
+                data_list.sort(key=lambda x: x[1])
+                return None
+        return None 
 
     def connect(self):
         """

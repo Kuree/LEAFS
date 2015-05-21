@@ -17,7 +17,7 @@ class MongoDBClient:
         add or update the data to mongodb
         '''
         commands = self.get_stream_from_topic(topic)
-        if commands:
+        if not commands:
             # it's new topic
             commands.append(stream_command)
             self.db.topic.update({"topic" : topic}, {"$set": {"stream_command" : commands}})
