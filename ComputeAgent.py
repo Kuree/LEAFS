@@ -4,6 +4,7 @@ import threading, math
 import json, time, logging
 from LoggingHelper import logger
 from functools import reduce
+from QueryObject import ComputeCommand
 
 
 class ComputeFunction:
@@ -56,17 +57,12 @@ class ComputeFunction:
                 return math.sqrt(reduce(lambda a, b : a + b, [math.pow(x[2] - avg, 2) for x in tuples]))  # compute the standard deviation
         return [[x[0][0], x[0][1], compute(x)] for x in chunks]
 
-    @staticmethod
-    def filter(data, min = None, max = None, interval = 1):
-        # TODO: currently not supported. Need to find a good way to implement various argument length
-        return [0]
-
 class ComputeAgent:
 
     _COMPUTE_REQUEST_TOPIC_STRING = "+/Query/Compute/+/+"
     _QUERY_RESULT_TOPIC_STRING = "/Query/Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
-    COMPUTE_FUNCTION = {"avg" : ComputeFunction.avg, "max" : ComputeFunction.max,"min" :ComputeFunction.sum,"dev" : ComputeFunction.dev}
+    COMPUTE_FUNCTION = {ComputeCommand.AVERAGE : ComputeFunction.avg, ComputeCommand.MAX : ComputeFunction.max, ComputeCommand.MIN :ComputeFunction.sum,ComputeCommand.DEV : ComputeFunction.dev}
 
     def __init__(self, block_current_thread = False):
        self._compute_request_sub = Client()
@@ -92,13 +88,12 @@ class ComputeAgent:
             command_name = command["name"]
             if command_name in ComputeAgent.COMPUTE_FUNCTION:
                 # perform computation
-                if command_name != "filter":
-                    arg = command["arg"]
-                    if len(arg) == 0:
-                        message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data)
-                    else:
-                        interval = int(arg[0])
-                        message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, interval)
+                arg = command["arg"]
+                if len(arg) == 0:
+                    message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data)
+                else:
+                    interval = int(arg[0])
+                    message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, interval)
 
             commands.remove(command)
 

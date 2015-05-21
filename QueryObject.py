@@ -3,11 +3,11 @@ from LoggingHelper import logger
 
 
 class ComputeCommand:
-    AVERAGE = "avg"
-    SUM = "sum"
-    MAX = "max"
-    MIN = "min"
-    DEV = "dev"
+    AVERAGE = 0
+    SUM = 1
+    MAX = 2
+    MIN = 3
+    DEV = 4
     ONE_MINUTE = 60
     FIVE_MINUTE = 60 * 5
 
