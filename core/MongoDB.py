@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from QueryObject import QueryObject
+from core.QueryObject import QueryObject
 
 class MongoDBClient:
     '''

@@ -26,7 +26,7 @@ class LoggingAgent:
     def on_log_message(self, mqttc, obj, msg):
         if msg.topic != LoggingAgent._LOG_TOPIC_STRING[0]:
             # traffic log
-            logging.info("Topic: {0}, Payload: {1}".format(msg.topic, msg.payload.decode()))
+            logging.info("Topic: {0}, Payload: {1}".format(msg.topic, msg.payload))
         else:
             logging_data = json.loads(msg.payload.decode())
             level = logging_data[0]

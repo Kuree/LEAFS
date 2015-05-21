@@ -2,10 +2,8 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 import threading, math
 import json, time, logging
-from LoggingHelper import logger
 from functools import reduce
-from QueryObject import ComputeCommand
-from msgEncode import msgEncode
+from core import ComputeCommand, msgEncode, logger
 
 
 class ComputeFunction:

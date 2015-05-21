@@ -1,7 +1,7 @@
 from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 import random, json
-from QueryObject import QueryObject, QueryStreamObject
+from core.QueryObject import QueryObject, QueryStreamObject
 
 
 class QueryClient:

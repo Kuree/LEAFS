@@ -1,11 +1,11 @@
 import paho.mqtt.publish as publish
-from QueryClient import QueryClient
+from client.QueryClient import QueryClient
 import json
 import time
 import threading
 from SqlHelper import putData
-from QueryObject import ComputeCommand
-from msgEncode import msgEncode
+from core.QueryObject import ComputeCommand
+from core.msgEncode import msgEncode
 
 should_stop = False
 

@@ -1,5 +1,5 @@
 import sqlite3
-from QueryAgent import QueryAgent
+from agent.QueryAgent import QueryAgent
 
 
 class SQLAgent(QueryAgent):
@@ -19,7 +19,7 @@ class SQLAgent(QueryAgent):
         self.cursor.execute('select * from WaterLevel where SensorName=? and time >= ? and time <= ?', query)
         result = []
         for row in self.cursor:
-            t = (row[1], row[2])
+            t = (row[1], row[2], row[3])
             result.append(t)
         return result
 
