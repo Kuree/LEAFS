@@ -4,6 +4,7 @@ from QueryObject import QueryStreamObject, QueryCommand
 from paho.mqtt import publish
 from LoggingHelper import logger
 from MongoDB import MongoDBClient
+from msgEncode import msgEncode
 
 class WindowAgent:
     """
@@ -142,7 +143,7 @@ class WindowAgent:
         """
         topic = msg.topic
         qos = msg.qos
-        data_point = json.loads(msg.payload.decode())
+        data_point = msgEncode.decode(msg.payload)
         timestamp, sequence_number, value = data_point
         if topic in self._topic_request_dict:
             # put the data into data store
@@ -155,17 +156,16 @@ class WindowAgent:
 
                 # get the interval
                 # there might be better way to do it...
-                interval = stream_command.compute_command[0]["arg"][0] if stream_command.compute_command is not None else 1
+                interval = stream_command.compute_command[0][1] if stream_command.compute_command is not None else 0
 
                 # deal with window buffer now.
                 result = self.add_stream_data(stream_command, qos, data_point, interval, request_id)
                 if result is not None:
                     if stream_command.compute_command is not None:
-                        query = {"data" : result, "compute" : stream_command.compute_command}
-                        publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=WindowAgent._HOSTNAME)
+                        publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
                     else:
                         publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id,
-                                       json.dumps(result), hostname=WindowAgent._HOSTNAME)
+                                       msgEncode.encode(result), hostname=WindowAgent._HOSTNAME)
 
                     # empty the list for the next interval
                     # and then add the data

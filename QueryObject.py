@@ -15,7 +15,7 @@ class ComputeCommand:
         self.commands = []
 
     def add_compute_command(self, type, interval = None):
-        self.commands.append({"name" : type, "arg" : [interval] if interval is not None else []})
+        self.commands.append([type, interval if interval is not None else 0])
 
     def to_obj(self):
         return self.commands

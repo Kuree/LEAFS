@@ -19,15 +19,15 @@ class msgEncode:
 
     @staticmethod
     def encode(data, timestamp_type = IEEE_DOUBLE, value_type = IEEE_DOUBLE, compute = None):
-        has_list = True
-        count = len(data)
-        if len(data) == 3:
-            if isinstance(data[0], int):
-                count = 1
-                has_list = False
+        if isinstance(data[0], tuple) or isinstance(data[0], list):
+            count = len(data)
+            has_list = True
+        else:
+            has_list =False
+            count = 1
             
 
-        pack_tuple = False
+        pack_tuple = True
         format = msgEncode._get_encode_codec_string(has_list, compute, timestamp_type, value_type, count)
         if has_list:
             # flatten the list
@@ -37,11 +37,11 @@ class msgEncode:
             data = list(chain.from_iterable(data))
         header_data = msgEncode._get_header_encode(has_list, pack_tuple, compute, False, timestamp_type, value_type, count)
         if compute is None:
-            return struct.pack(format, header_data, *data)
+            return bytearray(struct.pack(format, header_data, *data))
         else:
             raw_compute = list(chain.from_iterable(compute))
             data = raw_compute + data
-            return struct.pack(format, header_data, bytes([len(compute)]),  *data)
+            return bytearray(struct.pack(format, header_data, bytes([len(compute)]),  *data))
 
     @staticmethod
     def decode(msg):
@@ -67,6 +67,10 @@ class msgEncode:
         format = msgEncode._get_decode_codec_string(has_list, is_tuple_pack, is_multiple_series, timestamp_type, value_type, count)
         data_points = struct.unpack(format, raw_data)
 
+        if is_tuple_pack and has_list:
+            # un-flatten the pack
+            data_points = msgEncode._unflatten_list(data_points, 3)
+
         if has_compute:
             compute = msgEncode._get_compute_Data(compute_count, msg[5 : 5 + 8 * compute_count])
             return [data_points, compute]
@@ -76,10 +80,13 @@ class msgEncode:
     @staticmethod
     def _get_compute_Data(count, data):
         result = struct.unpack(">If" * count, data)
+        return msgEncode._unflatten_list(result, 2)
+
+    def _unflatten_list(lst, size):
         def get_chunks(lst):
-            for i in range(len(lst) // 2):
-                yield lst[i: i + 2]
-        return list(get_chunks(result))
+            for i in range(len(lst) // size):
+                yield lst[i: i + size]
+        return list(get_chunks(lst))
 
     @staticmethod
     def _get_header_encode(has_list, is_pack_tuple, compute, is_multiple_series, timestamp_type, value_type, count = 0):

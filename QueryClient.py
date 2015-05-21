@@ -80,7 +80,7 @@ class QueryClient:
         self.__handle_command(QueryClient._DELETE)
 
     def _on_receive_message(self, mqttc, obj, msg):
-        self.on_message(msg.topic, msg.payload.decode())
+        self.on_message(msg.topic, msg.payload)
 
     def connect(self):
         """

@@ -5,6 +5,7 @@ import json, time, logging
 from LoggingHelper import logger
 from functools import reduce
 from QueryObject import ComputeCommand
+from msgEncode import msgEncode
 
 
 class ComputeFunction:
@@ -78,35 +79,31 @@ class ComputeAgent:
         if len(topics) != 5: logger.log(logging.WARN, "A standard request should have 5 levels")
         db_tag = topics[0]
 
-        message = json.loads(msg.payload.decode())
-        data = message["data"]
-        commands = message["compute"]
+        message = msgEncode.decode(msg.payload)
+        data = message[0]
+        commands = message[1]
 
         while not ComputeAgent.should_return(commands):
             # loop till the task is finished
             command = commands[0]
-            command_name = command["name"]
+            command_name = command[0]
             if command_name in ComputeAgent.COMPUTE_FUNCTION:
                 # perform computation
-                arg = command["arg"]
-                if len(arg) == 0:
-                    message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data)
-                else:
-                    interval = int(arg[0])
-                    message["data"] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, interval)
+                arg = command[1]
+                message[0] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, arg)
 
             commands.remove(command)
 
         
         request_id = topics[-2] + "/" +  topics[-1]
-        publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(message["data"]), hostname = ComputeAgent._HOSTNAME)
+        publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode(message[0]), hostname = ComputeAgent._HOSTNAME)
         return
 
 
     @staticmethod
     def should_return(commands):
         for command in commands:
-            if command["name"] in ComputeAgent.COMPUTE_FUNCTION:
+            if command[0] in ComputeAgent.COMPUTE_FUNCTION:
                 return False
         return True
 

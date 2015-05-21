@@ -5,6 +5,7 @@ import time
 import threading
 from SqlHelper import putData
 from QueryObject import ComputeCommand
+from msgEncode import msgEncode
 
 should_stop = False
 
@@ -12,7 +13,7 @@ def push_data_forever():
     count = 20
     while not should_stop:
         obj = (count, count - 20, count)
-        publish.single("test/test/1", json.dumps(obj), hostname="mqtt.bucknell.edu")
+        publish.single("test/test/1", msgEncode.encode(obj), hostname="mqtt.bucknell.edu")
         time.sleep(0.1)
         count += 1
 
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     compute.add_compute_command(ComputeCommand.AVERAGE, 5)
     q = QueryClient("test")
     q.add_query("SQL", "test/test/1", 0, 20,True, compute.to_obj())
-    q.on_message = lambda a, b : print(b)
+    q.on_message = lambda a, b : print(msgEncode.decode(b))
     q.connect()
     time.sleep(3)
     q.pause()
