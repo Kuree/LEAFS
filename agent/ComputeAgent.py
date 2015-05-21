@@ -1,7 +1,7 @@
 from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
-import threading, math
-import json, time, logging
+import math
+import logging
 from functools import reduce
 from core import ComputeCommand, msgEncode, logger
 

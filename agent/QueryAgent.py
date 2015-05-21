@@ -2,7 +2,7 @@ from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 from SqlHelper import queryData
 import json, time, logging
-from core import logger as logger
+from core import logger
 from core import QueryCommand, QueryObject
 
 

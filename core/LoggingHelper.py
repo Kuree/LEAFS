@@ -1,5 +1,5 @@
 import paho.mqtt.publish as publish
-import logging, json
+import json
 
 class logger:
     _HOSTNAME = "mqtt.bucknell.edu"

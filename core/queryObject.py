@@ -1,5 +1,5 @@
 import json, logging
-from core.LoggingHelper import logger
+from core import logger
 
 
 class ComputeCommand:

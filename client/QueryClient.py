@@ -1,7 +1,7 @@
 from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
 import random, json
-from core.QueryObject import QueryObject, QueryStreamObject
+from core import QueryObject, QueryStreamObject
 
 
 class QueryClient:
@@ -31,6 +31,7 @@ class QueryClient:
         self._HOSTNAME = hostname
         self.api_key = api_key
         self.queries = {}
+        self.streams = {}
 
         self._query_sub = Client()
 
@@ -48,10 +49,15 @@ class QueryClient:
             # send the query object to the server
             publish.single(query_obj.db_tag + QueryClient._QUERY_REQUEST_TOPIC + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
 
-            # request window agent
-            if persistent and compute is not None:
-                stream_obj = QueryStreamObject.create_stream_obj(self.api_key, query_id, query_obj.topic, db_tag, query_obj.compute)
-                publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + query_obj.request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+
+    def add_stream(self, db_tag, topic, compute):
+        query_id = random.randrange(10000000)    # make sure that each query object id is unique
+        request_id = self.api_key + '/' + query_id
+        stream_obj = QueryStreamObject.create_stream_obj(self.api_key, query_id, topic, db_tag, compute)
+        self.streams[request_id] = stream_obj
+        if self.__has_started:
+            publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+
 
     def start(self):
         """
@@ -95,9 +101,12 @@ class QueryClient:
             self._query_sub.subscribe(query_obj.db_tag + QueryClient._QUERY_RESULT_STRING + query_obj.request_id)
             # send the query object to the server
             publish.single(query_obj.db_tag + QueryClient._QUERY_REQUEST_TOPIC + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
-            if query_obj.persistent and query_obj.compute is not None:
-                stream_obj = QueryStreamObject.create_stream_obj(self.api_key, query_obj.request_id, query_obj.topic, query_obj.db_tag, query_obj.compute)
-                publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + query_obj.request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+
+        for request_id in self.streams:
+            stream_obj = self.streams[request_id]
+            publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+
+
         self.__has_started = True
 
     def on_message(self, topic, payload):
