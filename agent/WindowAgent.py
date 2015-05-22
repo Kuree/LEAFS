@@ -18,7 +18,7 @@ class WindowAgent:
     _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
 
 
-    _MAX_QOS_0_WINDOW_SIZE = 2
+    _MAX_QOS_0_WINDOW_SIZE = 0
 
     def __init__(self, block_current_thread = False):
         """Initialize the window agent"""
@@ -167,9 +167,7 @@ class WindowAgent:
                         publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id,
                                        msgEncode.encode(result), hostname=WindowAgent._HOSTNAME)
 
-                    # empty the list for the next interval
-                    # and then add the data
-                    stream_command.data = []
+
 
     def add_stream_data(self, stream_command, qos, data_point, interval, request_id):
         data_list = stream_command.data
@@ -183,7 +181,7 @@ class WindowAgent:
             if qos != 2:
                 # check duplicated points
                 search = [x for x in data_list if x[1] == sequence_number]
-                if len(search) == 0: # this is duplicated points
+                if len(search) != 0: # this is duplicated points
                     return None
             data_list.append(data_point)
             data_list.sort(key=lambda point: point[1]) # sort the list according to the sequence number
@@ -197,20 +195,25 @@ class WindowAgent:
             if data_point[0] >= data_list[0][0] + interval:
                 # outside the window 
                 if request_id not in self._window_buffer: self._window_buffer[request_id] = []
-                self._window_buffer[request_id].append(data_point)
+                if len([x for x in self._window_buffer[request_id] if x[1] == data_point[1]]) == 0:
+                    self._window_buffer[request_id].append(data_point)
                 stream_command.data.sort(key=lambda x : x[1])
                 if qos == 0 and len(self._window_buffer[request_id]) > WindowAgent._MAX_QOS_0_WINDOW_SIZE:
                     # okay something really messed up. need to return the window
                     # the network might just got really slow
-                    result = stream_command.data
-                    stream_command.data = self._window_buffer[request_id]
+                    result = []
+                    for x in stream_command.data:
+                        result.append(x)
+                    stream_command.data.clear()
+                    for x in self._window_buffer[request_id]:
+                        stream_command.data.append(x)
                     stream_command.data.sort(key=lambda x : x[1])
                     self._window_buffer[request_id] = []
                     # bump the buffer to the actual window and clear the window
                     return result
                 else:
                     # add it to the buffer
-                    self._window_buffer[request_id].append(data_point)
+                    #self._window_buffer[request_id].append(data_point)
                     return None
             else:
                 # inside the window
@@ -218,6 +221,8 @@ class WindowAgent:
                 data_list.sort(key=lambda x: x[1])
                 return None
         return None 
+
+    
 
     def connect(self):
         """

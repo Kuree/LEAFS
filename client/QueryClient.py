@@ -105,8 +105,8 @@ class QueryClient:
 
         for request_id in self.streams:
             stream_obj = self.streams[request_id]
-            publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
-            self._query_sub.subscribe(stream_obj.db_tag + QueryClient._QUERY_REQUEST_TOPIC + request_id)
+            publish.single(stream_obj.db_tag + QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+            self._query_sub.subscribe(stream_obj.db_tag + QueryClient._QUERY_RESULT_STRING + request_id)
 
 
         self.__has_started = True
