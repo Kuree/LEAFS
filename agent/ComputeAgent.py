@@ -91,12 +91,10 @@ class ComputeAgent:
                 message[0] = ComputeAgent.COMPUTE_FUNCTION[command_name](data, arg)
 
             commands.remove(command)
-
         
         request_id = topics[-2] + "/" +  topics[-1]
         publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode(message[0]), hostname = ComputeAgent._HOSTNAME)
         return
-
 
     @staticmethod
     def should_return(commands):
@@ -105,14 +103,11 @@ class ComputeAgent:
                 return False
         return True
 
-
     def connect(self):
        if self.block_current_thread:
            self._compute_request_sub.loop_forever()
        else:
            self._compute_request_sub.loop_start()
-
-
 
     @staticmethod
     def split_into_chunk(data, interval):
@@ -131,6 +126,6 @@ class ComputeAgent:
         result.append(chunk)
         return result
 
-if __name__ == "__main__":
+if __name__ == "__main__" and __package__ is None:
     sys = ComputeAgent(True)
     sys.connect()

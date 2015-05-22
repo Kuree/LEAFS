@@ -43,7 +43,7 @@ class QueryStreamObject:
     def __init__(self, strData, api_key, query_id):
         self.api_key = api_key
         self.query_id = query_id
-        self.request_id = self.api_key + "/" + self.query_id
+        self.request_id = self.api_key + "/" + str(self.query_id)
 
         if strData is None:
             # create an empty query stream object
