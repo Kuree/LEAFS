@@ -20,23 +20,33 @@ class ComputeFunction:
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b: a + b, [x[2] for x in tuples]) / len(tuples)
-        return [[x[0][0], x[0][1], compute(x)] for x in chunks]
+        return [[ComputeFunction._get_middle_(x, 0), ComputeFunction._get_middle_(x, 1), compute(x)] for x in chunks]
 
     @staticmethod
     def max(data, interval = 1):
         chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
-            if len(tuples) == 0: return 0
-            else: return reduce(lambda a, b : a if a > b else b, [x[2] for x in tuples])
-        return [[x[0][0], x[0][1], compute(x)] for x in chunks]
+            if len(tuples) == 0: return [0,0, 0]
+            else: 
+                max_index = 0
+                for i in range(len(tuple)):
+                    if tuples[i][2] > tuples[max_index][2]:
+                        max_index = i
+                return tuples[max_index]
+        return [compute(x) for x in chunks]
 
     @staticmethod
     def min(data, interval = 1):
         chunks = ComputeAgent.split_into_chunk(data, interval)
         def compute(tuples):
-            if len(tuples) == 0: return 0
-            else: return reduce(lambda a, b : a if a < b else b, [x[2] for x in tuples])
-        return [[x[0][0], x[0][1], compute(x)] for x in chunks]
+            if len(tuples) == 0: return [0,0, 0]
+            else: 
+                min_index = 0
+                for i in range(len(tuple)):
+                    if tuples[i][2] < tuples[min_index][2]:
+                        min_index = i
+                return tuples[min_index]
+        return [compute(x) for x in chunks]
 
     @staticmethod
     def sum(data, interval = 1):
@@ -44,7 +54,7 @@ class ComputeFunction:
         def compute(tuples):
             if len(tuples) == 0: return 0
             else: return reduce(lambda a, b : a + b, [x[2] for x in tuples])
-        return [[x[0][0], x[0][1], compute(x)] for x in chunks]
+        return [[ComputeFunction._get_middle_(x, 0), ComputeFunction._get_middle_(x, 1), compute(x), compute(x)] for x in chunks]
 
     @staticmethod
     def dev(data, interval = 1):
@@ -54,7 +64,11 @@ class ComputeFunction:
             else: 
                 avg = reduce(lambda a, b : a + b, [x[2] for x in tuples]) / len(tuples)
                 return math.sqrt(reduce(lambda a, b : a + b, [math.pow(x[2] - avg, 2) for x in tuples]))  # compute the standard deviation
-        return [[x[0][0], x[0][1], compute(x)] for x in chunks]
+        return [[ComputeFunction._get_middle_(x, 0), ComputeFunction._get_middle_(x, 1), compute(x), compute(x)] for x in chunks]
+
+    @staticmethod
+    def _get_middle_(lst, index):
+        return lst[len(lst) // 2][index]
 
 class ComputeAgent:
 

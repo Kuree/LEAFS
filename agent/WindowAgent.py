@@ -17,6 +17,8 @@ class WindowAgent:
     _HOSTNAME = "mqtt.bucknell.edu"
     _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
 
+    _TIMEOUT_TOPIC_STRING = "Query/Timeout"
+
 
     _MAX_QOS_0_WINDOW_SIZE = 0
 
@@ -199,12 +201,11 @@ class WindowAgent:
                     self._window_buffer[request_id].append(data_point)
                 stream_command.data.sort(key=lambda x : x[1])
                 if qos == 0 and len(self._window_buffer[request_id]) > WindowAgent._MAX_QOS_0_WINDOW_SIZE:
-                    # okay something really messed up. need to return the window
-                    # the network might just got really slow
+                    # need to return the window
                     result = []
                     for x in stream_command.data:
                         result.append(x)
-                    stream_command.data.clear()
+                    stream_command.data = []
                     for x in self._window_buffer[request_id]:
                         stream_command.data.append(x)
                     stream_command.data.sort(key=lambda x : x[1])
@@ -212,8 +213,6 @@ class WindowAgent:
                     # bump the buffer to the actual window and clear the window
                     return result
                 else:
-                    # add it to the buffer
-                    #self._window_buffer[request_id].append(data_point)
                     return None
             else:
                 # inside the window
@@ -222,6 +221,13 @@ class WindowAgent:
                 return None
         return None 
 
+    def _get_window_size(data_points, interval):
+        # dynamically allocate the size
+        # assume there are only two data points
+        time_1, sequence_1  = data_points[0][0], data_points[0][1]
+        time_2, sequence_2 = data_points[-1][0], data_points[-1][1]
+        
+        return 0
     
 
     def connect(self):
@@ -237,7 +243,8 @@ class WindowAgent:
             for stream_command in self._topic_request_dict[topic]:
                 self._stream_sub.subscribe(stream_command.topic)
 
-
+        # stream sub subscribes the timeout
+        self._stream_sub.subscribe(WindowAgent._TIMEOUT_TOPIC_STRING)
 
         if self.block_current_thread:
             # block the current thread
