@@ -1,10 +1,12 @@
 from agent import WindowAgent
 from paho.mqtt.publish import single
-
+import time
 
 if __name__ == "__main__":
     a = WindowAgent() # don't have to let the agent block the thread
     a.connect()
 
     # a house keeping threading to control timeout speed
-    single("Query/Timeout", qos=2)
+    while True:
+        single("Query/Timeout", qos=2, hostname="mqtt.bucknell.edu")
+        time.sleep(1)

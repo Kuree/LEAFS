@@ -138,15 +138,51 @@ class WindowAgent:
             result.append(entry)
         return result
 
+    def _timeout_clean(self):
+        for topic in self._topic_request_dict:
+            stream_command_list = self._topic_request_dict[topic]
+            for stream_command in stream_command_list:
+                if stream_command.timeout_time <= time.time():
+                    self._send_data(stream_command)
+        pass
+
+    def _send_data(self, stream_command):
+        # need to return the window
+        if len(stream_command.data == 0):   # empty list. don't need to send data
+            return
+        result = []
+        request_id = stream_command.request_id
+        for x in stream_command.data:
+            result.append(x)
+            stream_command.data = []
+            if request_id in self._window_buffer:
+                for x in self._window_buffer[request_id]:
+                    stream_command.data.append(x)
+                    stream_command.data.sort(key=lambda x : x[1])
+                    self._window_buffer[request_id] = []
+        # bump the buffer to the actual window and clear the window
+
+        if stream_command.compute_command is not None:
+            publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
+        else:
+            publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id, 
+                           msgEncode.encode(result), hostname=WindowAgent._HOSTNAME)
+
     def on_stream_message(self, mqttc, obj, msg):
         """
         Handle the streaming message. It will look up the streaming command table and see if the data should be kept
         in memory to perform window task.
         """
         topic = msg.topic
+        if topic == WindowAgent._TIMEOUT_TOPIC_STRING:
+            # timeout clean
+            self._timeout_clean()
+            return
+
         qos = msg.qos
         data_point = msgEncode.decode(msg.payload)
         timestamp, sequence_number, value = data_point
+
         if topic in self._topic_request_dict:
             # put the data into data store
             stream_command_list = self._topic_request_dict[topic]
@@ -160,22 +196,20 @@ class WindowAgent:
                 # there might be better way to do it...
                 interval = stream_command.compute_command[0][1] if stream_command.compute_command is not None else 0
 
-                # deal with window buffer now.
-                result = self.add_stream_data(stream_command, qos, data_point, interval, request_id)
-                if result is not None:
-                    if stream_command.compute_command is not None:
-                        publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
-                    else:
-                        publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id,
-                                       msgEncode.encode(result), hostname=WindowAgent._HOSTNAME)
+                # deal with window buffer now and send it if necessary
+                self.add_stream_data(stream_command, qos, data_point, interval, request_id)
 
-
+    def _add_data_point(self, stream_command, data_point):
+        stream_command.data.append(data_point)
+        stream_command.data.sort(key=lambda a: a[1])    # sort the list
+        # stream_command.timeout_time = data_point[0] + stream_command.timeout
+        
 
     def add_stream_data(self, stream_command, qos, data_point, interval, request_id):
         data_list = stream_command.data
         if len(data_list) == 0:
             # list is empty. cool.
-            stream_command.data.append(data_point)
+            self._add_data_point(stream_command, data_point)
             return None
         # we assume that the stream_command.data is already sorted by sequence number
         sequence_number = data_point[1]
@@ -184,42 +218,25 @@ class WindowAgent:
                 # check duplicated points
                 search = [x for x in data_list if x[1] == sequence_number]
                 if len(search) != 0: # this is duplicated points
-                    return None
-            data_list.append(data_point)
-            data_list.sort(key=lambda point: point[1]) # sort the list according to the sequence number
-            if data_list[0][0] + interval <= data_list[-1][0]:
-                # the window is full
-                return data_list
-            else:
-                return None
+                    return
+            self._add_data_point(stream_command, data_point)
+            stream_command.timeout_time = data_point[0] + stream_command.timeout
         else:
             # okay need to check if we need to send the window
             if data_point[0] >= data_list[0][0] + interval:
                 # outside the window 
-                if request_id not in self._window_buffer: self._window_buffer[request_id] = []
-                if len([x for x in self._window_buffer[request_id] if x[1] == data_point[1]]) == 0:
+                if request_id not in self._window_buffer: 
+                    self._window_buffer[request_id] = []
+                if len([x for x in self._window_buffer[request_id] if x[1] == data_point[1]]) == 0: # no duplicated points
                     self._window_buffer[request_id].append(data_point)
                 stream_command.data.sort(key=lambda x : x[1])
                 if qos == 0 and len(self._window_buffer[request_id]) > WindowAgent._MAX_QOS_0_WINDOW_SIZE:
                     # need to return the window
-                    result = []
-                    for x in stream_command.data:
-                        result.append(x)
-                    stream_command.data = []
-                    for x in self._window_buffer[request_id]:
-                        stream_command.data.append(x)
-                    stream_command.data.sort(key=lambda x : x[1])
-                    self._window_buffer[request_id] = []
-                    # bump the buffer to the actual window and clear the window
-                    return result
-                else:
-                    return None
+                    self._send_data(stream_command)
             else:
                 # inside the window
-                data_list.append(data_point)
-                data_list.sort(key=lambda x: x[1])
-                return None
-        return None 
+                self._add_data_point(stream_command, data_point)
+                return
 
     def _get_window_size(data_points, interval):
         # dynamically allocate the size

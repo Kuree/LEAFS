@@ -40,10 +40,16 @@ class QueryCommand:
 
 
 class QueryStreamObject:
-    def __init__(self, strData, api_key, query_id):
+    def __init__(self, strData, api_key, query_id, timeout = 5):
+        '''
+        timeout is in second 
+        '''
         self.api_key = api_key
         self.query_id = query_id
         self.request_id = self.api_key + "/" + str(self.query_id)
+        self.timeout = timeout
+
+        self.timeout_time = 0
 
         if strData is None:
             # create an empty query stream object
@@ -60,7 +66,8 @@ class QueryStreamObject:
             self.data = raw_data["data"]
 
     def to_object(self):
-        return {"compute": self.compute_command, "db-tag" : self.db_tag, "data" : self.data, "topic" : self.topic, "request_id" : self.request_id}
+        return {"compute": self.compute_command, "db-tag" : self.db_tag, "data" : self.data, "topic" : self.topic, 
+                "request_id" : self.request_id, "timeout" : self.timeout}
 
     @staticmethod
     def create_stream_obj(api_key, query_id, topic, db_tag, compute = None ):

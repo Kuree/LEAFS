@@ -19,6 +19,8 @@ class msgEncode:
 
     @staticmethod
     def encode(data, timestamp_type = IEEE_DOUBLE, value_type = IEEE_DOUBLE, compute = None):
+        if len(data) == 0:
+            return
         if isinstance(data[0], tuple) or isinstance(data[0], list):
             count = len(data)
             has_list = True
@@ -85,7 +87,7 @@ class msgEncode:
     def _unflatten_list(lst, size):
         def get_chunks(lst):
             for i in range(len(lst) // size):
-                yield lst[i: i + size]
+                yield lst[i * size: i * size + size]
         return list(get_chunks(lst))
 
     @staticmethod
