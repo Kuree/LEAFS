@@ -22,7 +22,7 @@ class WindowAgent:
 
     _MAX_QOS_0_WINDOW_SIZE = 0
 
-    def __init__(self, block_current_thread = False):
+    def __init__(self, block_current_thread = False, is_benchmark = False):
         """Initialize the window agent"""
         self._stream_request_sub = Client()
         self._stream_request_sub.on_message = self.on_window_message
@@ -65,6 +65,27 @@ class WindowAgent:
 
 
         self.block_current_thread = block_current_thread
+
+        self.is_bench_mark = is_benchmark
+        if is_benchmark:
+            self.min_time = 0
+            self.max_time = 0
+            self._benchmark_sub = Client()
+            self._benchmark_sub.on_message = self._benchmark_send_message
+            self._benchmark_sub.connect("mqtt.bucknell.edu")
+            self._benchmark_sub.subscribe("benchmark/request")
+            self._benchmark_sub.loop_start()
+            
+    def _benchmark_send_message(self, mqttc, obj, message):
+        if self.is_bench_mark:
+            publish.single("benchmark/reply/window", payload = json.dumps({"min" : self.min_time, "max": self.max_time}), hostname= "mqtt.bucknell.edu")
+        
+    def _update_bench_mark(self, data_time):
+        if self.is_bench_mark:
+            if self.min_time == 0:
+                self.min_time = data_time
+            else:
+                self.max_time = data_time
 
     def _on_command_message(self, mqttc, obj, msg):
         """Handle the stream command like START and PAUSE"""
@@ -148,7 +169,7 @@ class WindowAgent:
 
     def _send_data(self, stream_command):
         # need to return the window
-        if len(stream_command.data == 0):   # empty list. don't need to send data
+        if len(stream_command.data) == 0:   # empty list. don't need to send data
             return
         result = []
         request_id = stream_command.request_id
@@ -184,6 +205,9 @@ class WindowAgent:
         timestamp, sequence_number, value = data_point
 
         if topic in self._topic_request_dict:
+
+            # benchmark
+            self._update_bench_mark(time.time())
             # put the data into data store
             stream_command_list = self._topic_request_dict[topic]
             for stream_command in self._get_list_copy(stream_command_list):

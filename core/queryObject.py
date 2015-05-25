@@ -8,6 +8,8 @@ class ComputeCommand:
     MAX = 2
     MIN = 3
     DEV = 4
+    COUNT = 5
+
     ONE_MINUTE = 60
     FIVE_MINUTE = 60 * 5
 

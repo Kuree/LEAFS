@@ -15,12 +15,12 @@ def putData(sensorID, timestamp, value):
     conn.commit()
 
 
-def queryData(sensor, start, end):
+def queryData(dbName, sensor, start, end):
     '''
     Prototyping simple database. Will move to Cassandra or mongodb
     '''
-    query = (sensor, start, end)
-    c.execute('select * from WaterLevel where SensorName=? and time >= ? and time <= ?', query)
+    query = (dbName, sensor, start, end)
+    c.execute('select * from ? where SensorName=? and time >= ? and time <= ?', query)
     result = []
     for row in c:
         t = (row[1], row[2])

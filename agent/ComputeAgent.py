@@ -4,7 +4,8 @@ import math
 import logging
 from functools import reduce
 from core import ComputeCommand, msgEncode, logger
-
+import time
+import json
 
 class ComputeFunction:
     # NOTICE:
@@ -67,6 +68,13 @@ class ComputeFunction:
         return [[ComputeFunction._get_middle_(x, 0), ComputeFunction._get_middle_(x, 1), compute(x), compute(x)] for x in chunks]
 
     @staticmethod
+    def count(data, interval = 1):
+        chunks = ComputeAgent.split_into_chunk(data, interval)
+        def compute(tuples):
+            return len(tuples)
+        return [[ComputeFunction._get_middle_(x, 0), ComputeFunction._get_middle_(x, 1), compute(x), compute(x)] for x in chunks]
+
+    @staticmethod
     def _get_middle_(lst, index):
         return lst[len(lst) // 2][index]
 
@@ -75,15 +83,38 @@ class ComputeAgent:
     _COMPUTE_REQUEST_TOPIC_STRING = "+/Query/Compute/+/+"
     _QUERY_RESULT_TOPIC_STRING = "/Query/Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
-    COMPUTE_FUNCTION = {ComputeCommand.AVERAGE : ComputeFunction.avg, ComputeCommand.MAX : ComputeFunction.max, ComputeCommand.MIN :ComputeFunction.sum,ComputeCommand.DEV : ComputeFunction.dev}
+    COMPUTE_FUNCTION = {ComputeCommand.AVERAGE : ComputeFunction.avg, ComputeCommand.MAX : ComputeFunction.max, 
+                        ComputeCommand.MIN :ComputeFunction.sum,ComputeCommand.DEV : ComputeFunction.dev,
+                        ComputeCommand.COUNT : ComputeFunction.count}
 
-    def __init__(self, block_current_thread = False):
+    def __init__(self, block_current_thread = False, is_benchmark = False):
        self._compute_request_sub = Client()
        self._compute_request_sub.on_message = self._on_compute_message
        self._compute_request_sub.connect(ComputeAgent._HOSTNAME)
        self._compute_request_sub.subscribe(ComputeAgent._COMPUTE_REQUEST_TOPIC_STRING, 0)
 
        self.block_current_thread = block_current_thread
+
+       self.is_bench_mark = is_benchmark
+       if is_benchmark:
+           self.min_time = 0
+           self.max_time = 0
+           self._benchmark_sub = Client()
+           self._benchmark_sub.on_message = self._benchmark_send_message
+           self._benchmark_sub.connect("mqtt.bucknell.edu")
+           self._benchmark_sub.subscribe("benchmark/request")
+           self._benchmark_sub.loop_start()
+            
+    def _benchmark_send_message(self, mqttc, obj, message):
+        if self.is_bench_mark:
+            publish.single("benchmark/reply/compute", payload = json.dumps({"min" : self.min_time, "max": self.max_time}), hostname= "mqtt.bucknell.edu")
+        
+    def _update_bench_mark(self, data_time):
+        if self.is_bench_mark:
+            if self.min_time == 0:
+                self.min_time = data_time
+            else:
+                self.max_time = data_time
        
 
     def _on_compute_message(self, mqttc, obj, msg):
@@ -94,6 +125,8 @@ class ComputeAgent:
         message = msgEncode.decode(msg.payload)
         data = message[0]
         commands = message[1]
+
+        self._update_bench_mark(time.time())
 
         while not ComputeAgent.should_return(commands):
             # loop till the task is finished

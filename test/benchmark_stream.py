@@ -1,43 +1,62 @@
 import paho.mqtt.publish as publish
+from paho.mqtt.client import Client
 from client.QueryClient import QueryClient
 import time
 import threading
 from core import ComputeCommand
 from core import msgEncode
+import csv, json
 
 sending_time = 0
 count = 0
 
 class benchmark_stream:
 
-    def __init__(self, name):
-        self.sending_time = 0
-        self.send_end_time = 0
-        self.send_start_time = 0
+    def __init__(self, name, interval, sensor_type):
 
-        self.maximum = 100
-        self.re_start_time = 0
-        self.re_end_time = 0
-        self.receive_time = 0
+        self.sensor_type = sensor_type
 
-        self.count = 0
-        self.interval = 50
+
+        self.interval = interval
         self.name = name
-       
 
-    def push_data_forever(self, maximum):
-        count = 0
-        self.send_start_time = time.time()
-        while count < maximum + self.interval * 10:  # add extra in case there's buffering. timing only counts for the first maximum number of data points
-            obj = (count, count, count)
-            publish.single("test/test/stream" + str(self.name), msgEncode.encode(obj), hostname="mqtt.bucknell.edu")
-            count += 1
-            if count == maximum:
-                self.send_end_time = time.time()
-                self.sending_time = self.send_end_time - self.send_start_time
+        # hold the file in memory
+        self.data_points = []
+        with open("water_level.csv", 'r') as f:
+            reader = csv.reader(f)
+            count = -1
+            for row in reader:
+                if len(row) == 0:
+                    continue
+                if count > 1000:
+                    break
+
+                if count >= 0:
+                    self.data_points.append((time.time(), count, float(row[1])))
+                    time.sleep(0.01)
+                count += 1
+
+        self.min_rec_time = 0
+        self.max_rec_time = 0
+
+        self.min_send_time = 0
+        self.max_send_time = 0
+
+        self._benchmark_sub = Client()
+        self._benchmark_sub.on_message = self._benchmark_send_message
+        self._benchmark_sub.connect("mqtt.bucknell.edu")
+        self._benchmark_sub.subscribe("benchmark/request")
+        self._benchmark_sub.loop_start()
+
+    def push_data(self):
+        self._update_sending_time(time.time())
+        for data_point in self.data_points:
+            publish.single("test/test/stream" + str(self.name), payload=msgEncode.encode(data_point), hostname="mqtt.bucknell.edu",
+                           keepalive=1000)
+        self._update_sending_time(time.time())
 
     def run(self):
-        t = threading.Thread(target=self.push_data_forever, args=(self.maximum, ))
+        t = threading.Thread(target=self.push_data)
         q = QueryClient("benchmark_stream" + str(self.name))
         compute = ComputeCommand()
         compute.add_compute_command(ComputeCommand.AVERAGE, self.interval)
@@ -47,19 +66,23 @@ class benchmark_stream:
         q.connect()
         time.sleep(0.2) # wait till the connection is ready
         t.start()
-        self.re_start_time = time.time()
-
-        while self.re_end_time == 0:
-            time.sleep(1)
-        self.receive_time = self.re_end_time - self.re_start_time
-        print("Sending time: {0}. Receiving time: {1}. Total delay: {2}. Delay time per message: {3}".format(
-            self.sending_time, self.receive_time, self.receive_time - self.sending_time, (self.receive_time - self.sending_time) / self.maximum
-        ))
-
-        return self.sending_time, self.receive_time
+        
 
     def on_message(self, topic, msg):
-        self.count += 1
+        self._update_receive_time(time.time())
+
+    def _benchmark_send_message(self, mqttc, obj, message):
+        publish.single("benchmark/reply/benchmark", payload = json.dumps({"min" : self.min_rec_time, "max": self.max_rec_time}), hostname= "mqtt.bucknell.edu")
+        publish.single("benchmark/reply/send", payload = json.dumps({"min" : self.min_send_time, "max": self.max_send_time}), hostname= "mqtt.bucknell.edu")
         
-        if self.count == self.maximum / self.interval:
-            self.re_end_time = time.time()
+    def _update_receive_time(self, data_time):
+        if self.min_rec_time == 0:
+            self.min_rec_time = data_time
+        else:
+            self.max_rec_time = data_time
+
+    def _update_sending_time(self, data_time):
+        if self.min_send_time == 0:
+            self.min_send_time = data_time
+        else:
+            self.max_send_time = data_time

@@ -1,6 +1,5 @@
 from paho.mqtt.client import Client
 import paho.mqtt.publish as publish
-from SqlHelper import queryData
 import json, time, logging
 from core import logger
 from core import QueryCommand, QueryObject
@@ -101,10 +100,6 @@ class QueryAgent:
         query_obj["end"] = end
         self._mongodb.add(query_obj)
 
-
-    @staticmethod
-    def _query_db(topic, start, end):
-        return queryData(topic, start, end)
 
     def connect(self):
         # start the loop in the background
