@@ -28,12 +28,12 @@ class benchmark_stream:
             for row in reader:
                 if len(row) == 0:
                     continue
-                if count > 1000:
-                    break
+                #if count > 1000:
+                #    break
 
                 if count >= 0:
                     self.data_points.append((time.time(), count, float(row[1])))
-                    time.sleep(0.01)
+                    #time.sleep(0.01)
                 count += 1
 
         self.min_rec_time = 0
@@ -51,8 +51,7 @@ class benchmark_stream:
     def push_data(self):
         self._update_sending_time(time.time())
         for data_point in self.data_points:
-            publish.single("test/test/stream" + str(self.name), payload=msgEncode.encode(data_point), hostname="mqtt.bucknell.edu",
-                           keepalive=1000)
+            publish.single("test/test/stream" + str(self.name), payload=msgEncode.encode(data_point), hostname="mqtt.bucknell.edu",)
         self._update_sending_time(time.time())
 
     def run(self):
