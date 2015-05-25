@@ -7,9 +7,9 @@ import json
 
 
 if __name__ == "__main__":
-    w = WindowAgent(is_benchmark = True)
-    c = ComputeAgent(is_benchmark = True)
-    b = benchmark_stream("test", 0.1, "water")
+    #w = WindowAgent(is_benchmark = True)
+    #c = ComputeAgent(is_benchmark = True)
+    b = benchmark_stream("test", 0.005, "water")
 
     should_stop = False
     stop_control = {"window" : [0, 0, False] , "compute": [0, 0, False], "benchmark" : [0, 0, False], "send" : [0, 0, False]}
@@ -19,7 +19,7 @@ if __name__ == "__main__":
         topic = msg.topic
         raw_data = json.loads(msg.payload.decode())
         max_time = raw_data["max"]
-        min_time = raw_data["max"]
+        min_time = raw_data["min"]
         type = topic.split("/")[-1]
         if max_time == 0:
             return
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     benchmark_sub.on_message = on_message
     benchmark_sub.loop_start()
 
-    w.connect()
-    c.connect()
+    #w.connect()
+    #c.connect()
     b.run()
 
     
@@ -53,9 +53,9 @@ if __name__ == "__main__":
         time.sleep(5) # long sleep
 
     sending_time = stop_control["send"][0] - stop_control["send"][1]
-    total_delay = stop_control["benchmark"][0] - stop_control["benchmark"][0] - sending_time
-    compute_delay = stop_control["compute"][0] - stop_control["compute"][0] - sending_time
-    window_delay = stop_control["window"][0] - stop_control["compute"][0] - sending_time
+    total_delay = stop_control["benchmark"][0] - stop_control["benchmark"][1] - sending_time
+    compute_delay = stop_control["compute"][0] - stop_control["compute"][1] - sending_time
+    window_delay = stop_control["window"][0] - stop_control["window"][1] - sending_time
     broker_dealy = total_delay - window_delay - compute_delay
 
     print("total delay: ", total_delay, "window delay: ", window_delay, "compute delay: ", compute_delay,
