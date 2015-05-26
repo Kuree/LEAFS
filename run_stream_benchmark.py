@@ -7,9 +7,13 @@ import json
 
 
 if __name__ == "__main__":
-    #w = WindowAgent(is_benchmark = True)
-    #c = ComputeAgent(is_benchmark = True)
-    b = benchmark_stream("test", 0.1, "water")
+    w = WindowAgent(is_benchmark = True)
+    c = ComputeAgent(is_benchmark = True)
+
+    w.connect()
+    c.connect()
+
+    b = benchmark_stream("test", 0.1, "building", 10000)
 
     should_stop = False
     stop_control = {"window" : [0, 0, False] , "compute": [0, 0, False], "benchmark" : [0, 0, False], "send" : [0, 0, False]}

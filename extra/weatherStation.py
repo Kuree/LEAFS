@@ -36,14 +36,15 @@ def write_to_sqlite(raw_data):
     c = conn.cursor()
 
     # create table
-    c.execute('create table If not exists WaterLevel (time INT, value real)')
+    c.execute('create table If not exists WaterLevel (time INT, sequence_number INT, value real)')
     conn.commit()
 
     # putting data
     dps = raw_data[0]["dps"]
+    count = 0
     for key in dps:
         value = dps[key]
-        c.execute('insert into WaterLevel values(?, ?)', (key, value))
+        c.execute('insert into WaterLevel values(?, ?, ?)', (key, count, value))
     conn.commit()
 
 

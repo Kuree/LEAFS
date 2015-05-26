@@ -12,7 +12,7 @@ count = 0
 
 class benchmark_stream:
 
-    def __init__(self, name, interval, sensor_type):
+    def __init__(self, name, interval, sensor_type, count):
 
         self.sensor_type = sensor_type
 
@@ -22,19 +22,24 @@ class benchmark_stream:
 
         # hold the file in memory
         self.data_points = []
-        with open("water_level.csv", 'r') as f:
+
+        if sensor_type == "water":
+            filename = "water_level.csv"
+        elif sensor_type == "building":
+            filename = "building.csv"
+
+        with open(filename, 'r') as f:
             reader = csv.reader(f)
-            count = -1
+            _count = -1
             for row in reader:
                 if len(row) == 0:
                     continue
-                if count > 100000:
+                if _count > count:
                     break
-
-                if count >= 0:
-                    self.data_points.append((time.time(), count, float(row[1])))
+                if _count >= 0:
+                    self.data_points.append((time.time(), _count, float(row[1])))
                     time.sleep(0.0001)
-                count += 1
+                _count += 1
 
         self.min_rec_time = 0
         self.max_rec_time = 0

@@ -40,12 +40,16 @@ def write_to_sqlite(raw_data):
         count += 1
     conn.commit()
 
+def write_csv(data):
+    dps = data[0]["dps"]
+    with open("building.csv", 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow(("Timestamp", "Value"))
+        for key in dps:
+            value = dps[key]
+            writer.writerow((int(key), float(value)))
 
 if __name__ == "__main__":
     result = get_data_from_opentsdb("PowerSum")
-    #write_csv(result)
-    write_to_sqlite(result)
-
-#conn = sqlite3.connect('data.db', detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
-#c = conn.cursor()
-#c.execute('DROP TABLE Building')
+    write_csv(result)
+    #write_to_sqlite(result)

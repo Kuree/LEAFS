@@ -8,11 +8,12 @@ from core import ComputeCommand
 
 
 class benchmark_query:
-    def __init__(self):
-        self.start = 1432400000
-        self.end = 1432561297
+    def __init__(self, name, start = 1432400000, end = 1432561297):
+        self.start = start
+        self.end = end
         self.interval = 1000
         
+        self.name = name
 
         self._temp_end = 0
 
@@ -27,7 +28,7 @@ class benchmark_query:
         client = QueryClient("query_test")
         compute = ComputeCommand()
         compute.add_compute_command(ComputeCommand.AVERAGE, self.interval)
-        client.add_query("SQL", "Building", self.start, self.end, compute = compute.to_obj())
+        client.add_query("SQL", self.name, self.start, self.end, compute = compute.to_obj())
         
         
         
@@ -47,7 +48,7 @@ class benchmark_query:
         conn = sqlite3.connect('data.db', detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
         c = conn.cursor()
         query = (self.start, self.end)
-        c.execute("SELECT AVG(time), ROUND(AVG(sequence_number)), AVG(value) from Building where time >= ? and time <= ? \
+        c.execute("SELECT AVG(time), ROUND(AVG(sequence_number)), AVG(value) from " + self.name +" where time >= ? and time <= ? \
         GROUP BY ROUND(time/" + str(self.interval) + ")", query)
         data_points = []
         for row in c:
@@ -56,7 +57,7 @@ class benchmark_query:
         return end - start
 
     def in_memory_operation(self):
-        
+        start  = time.time()
         conn = sqlite3.connect('data.db', detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
         c = conn.cursor()
         query = (self.start, self.end)
@@ -65,7 +66,6 @@ class benchmark_query:
         count = 0
         for row in c.fetchall():
             data_points.append((float(row[0]), count, float(row[1])))
-        start  = time.time()
         chunks = benchmark_query.split_into_chunk(data_points, self.interval)
         def get_middle(chunk, index):
             return (chunk[-1][index] - chunk[0][index]) // 2
