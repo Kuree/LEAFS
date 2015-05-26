@@ -56,7 +56,7 @@ class benchmark_query:
         return end - start
 
     def in_memory_operation(self):
-        start  = time.time()
+        
         conn = sqlite3.connect('data.db', detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
         c = conn.cursor()
         query = (self.start, self.end)
@@ -65,7 +65,7 @@ class benchmark_query:
         count = 0
         for row in c.fetchall():
             data_points.append((float(row[0]), count, float(row[1])))
-
+        start  = time.time()
         chunks = benchmark_query.split_into_chunk(data_points, self.interval)
         def get_middle(chunk, index):
             return (chunk[-1][index] - chunk[0][index]) // 2

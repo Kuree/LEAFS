@@ -14,4 +14,10 @@ if __name__ == "__main__":
 
     mqtt_time = benchmark.mqtt_operation()
 
-    print(mqtt_time)
+    qure_sql_time = benchmark.sql_operation()
+
+    in_memory_time = benchmark.in_memory_operation()
+
+    print("MQTT Time: ", mqtt_time)
+    print( "SQL Time: ", qure_sql_time)
+    print("In memory: ", in_memory_time)
