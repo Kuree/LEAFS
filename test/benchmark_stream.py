@@ -28,7 +28,7 @@ class benchmark_stream:
             for row in reader:
                 if len(row) == 0:
                     continue
-                if count > 50000:
+                if count > 100000:
                     break
 
                 if count >= 0:

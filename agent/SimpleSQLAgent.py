@@ -15,15 +15,10 @@ class SQLAgent(QueryAgent):
         super().__init__("SQL", block_current_thread)
 
     def _query_data(self, topic, start, end):
-        query = (topic, start, end)
-        self.cursor.execute('select * from WaterLevel where SensorName=? and time >= ? and time <= ?', query)
+        query = (start, end)
+        self.cursor.execute('select * from ' + str(topic) + ' where time >= ? and time <= ?', (start, end,))
         result = []
         for row in self.cursor:
-            t = (row[1], row[2], row[3])
+            t = (row[0], row[1], row[2])
             result.append(t)
         return result
-
-
-if __name__ == "__main__":
-    sql = SQLAgent(True)
-    sql.connect()

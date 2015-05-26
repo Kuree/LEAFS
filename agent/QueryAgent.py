@@ -3,6 +3,7 @@ import paho.mqtt.publish as publish
 import json, time, logging
 from core import logger
 from core import QueryCommand, QueryObject
+from core import msgEncode
 
 
 class QueryAgent:
@@ -51,17 +52,13 @@ class QueryAgent:
         logger.log(logging.INFO, "Query message: " +  json.dumps(query_obj.to_object()))
 
         # record the topic as well as query id
-        self.add_streaming_query(query_obj.topic, request_id)
+        # self.add_streaming_query(query_obj.topic, request_id)
 
-        if query_obj.persistent:
-            # because it is persistent, we need to store the query information
-            self._mongodb.add(query_obj)            
-
-            # register it in the window system
-            if query_obj.compute is None:
-                # let the query agent to relay the message
-                self._query_relay_sub.subscribe(query_obj.topic)
-                self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand.START)
+        
+        if query_obj.compute is None:
+            # let the query agent to relay the message
+            self._query_relay_sub.subscribe(query_obj.topic)
+            self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand.START)
 
         self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 
@@ -74,12 +71,15 @@ class QueryAgent:
 
     def _handle_query_request(self, topic, compute, request_id, start, end):
         # let the underlying database system handle it
+
         raw_data = self._query_data(topic, start, end)
-        if compute is None:
-            publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, json.dumps(raw_data), hostname=self._HOSTNAME)
+
+        if compute is not None:
+            publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(raw_data, compute=compute), hostname=self._HOSTNAME)
         else:
-            query = {"data" : raw_data, "compute" : compute}
-            publish.single(self._COMPUTE_REQUEST_TOPIC_STRING + request_id, json.dumps(query), hostname=self._HOSTNAME)
+            publish.single(self._QUERY_RESULT_TOPIC_STRING + request_id, 
+                           msgEncode.encode(raw_data), hostname=self._HOSTNAME)
+
         return
 
     def _command_on_message(self, mqttc, obj, msg):
