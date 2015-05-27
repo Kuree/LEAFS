@@ -7,7 +7,7 @@ def get_data_from_opentsdb(senso_tag):
     url = "http://amm-csr2:4242/api/query" # notice this is behind Bucknell firewall
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     request_body = {
-    "start": 1432400000,
+    "start": 1431500000,
     "end": 1432561297,
     "queries": [
         {
@@ -52,4 +52,4 @@ def write_csv(data):
 if __name__ == "__main__":
     result = get_data_from_opentsdb("PowerSum")
     write_csv(result)
-    #write_to_sqlite(result)
+    write_to_sqlite(result)

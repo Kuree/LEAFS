@@ -113,6 +113,8 @@ class QueryObject:
     def to_object(self):
         """
             Convert the object into dictionary object
+            It contains more information that it's necessary
+            But to be safe, some information is included as well
         """
         result = {}
         result["start"] = self.start

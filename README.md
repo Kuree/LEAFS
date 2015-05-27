@@ -1,6 +1,6 @@
-# AgentMQ: An agent based distributed network
+# LEAFS: Lightweight Environment of Agents for Full lifecycle support of Streaming data applications
 
-AgentMQ is an agent-based, distributed network framework on top of MQTT. It has several features as follows:
+LEAFS is an agent-based, distributed network framework on top of MQTT. It has several features as follows:
 + It is designed to be modulable so that users can add components at runtime.
 + Each component functions as an individual agent that performs certain task
 + Each component can run on different machine, hence distributed
@@ -11,7 +11,7 @@ AgentMQ is an agent-based, distributed network framework on top of MQTT. It has 
 + MQTT broker
 
 ### MQTT Topic Mapping
-By design most topic used in the system has 5 levels, `DB_Tag,/Query/AGENT_NAME/API_KEY/QUERY_ID`. For instance, `SQL/Query/Request/test_api_key/1234` is a legal topic string. 
+By design most topic used in the system has 5 levels, `DB_Tag/Query/AGENT_NAME/API_KEY/QUERY_ID`. For instance, `SQL/Query/Request/test_api_key/1234` is a legal topic string. 
 The system uses request id internally, which consists of api key and query id. 
 
 ### Available Agents:

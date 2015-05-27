@@ -29,9 +29,6 @@ class benchmark_query:
         compute = ComputeCommand()
         compute.add_compute_command(ComputeCommand.AVERAGE, self.interval)
         client.add_query("SQL", self.name, self.start, self.end, compute = compute.to_obj())
-        
-        
-        
 
         client.on_message = self._on_message
 
@@ -41,7 +38,6 @@ class benchmark_query:
             time.sleep(0.5)
 
         return self._temp_end - start
-        
 
     def sql_operation(self):
         start = time.time()
@@ -52,8 +48,9 @@ class benchmark_query:
         GROUP BY ROUND(time/" + str(self.interval) + ")", query)
         data_points = []
         for row in c:
-            data_points.append((float(row[0]), int(row[1]), float(row[2])))
+            data_points.append((row[0], row[1], row[2]))
         end =  time.time()
+        conn.close()
         return end - start
 
     def in_memory_operation(self):
@@ -75,6 +72,7 @@ class benchmark_query:
 
         result =  [(get_middle(chunk, 0), get_middle(chunk, 1), avg(chunk)) for chunk in chunks]
         end = time.time()
+        conn.close()
         return end - start
 
     @staticmethod
