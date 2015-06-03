@@ -14,7 +14,10 @@ if __name__ == "__main__":
     cur = conn.cursor()
     def on_message(mqttc, obj, msg):
         global cur, conn, last_ts
-        topic = int(msg.topic.split("/")[-1])
+        last_id = msg.topic.split("/")[-1]
+        if not last_id.isdigit():
+            return
+        topic = int(last_id)
         ts, s_n, value = struct.unpack("dId", msg.payload)
         data_points.append((ts, s_n, value))
         if value - last_ts > 1:
