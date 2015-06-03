@@ -1,7 +1,7 @@
 #!/bin/bash
 # collect the system information
-echo "Activating python virtualenv"
-source mqtt-env/bin/activate
+#echo "Activating python virtualenv"
+#source ~/mqtt-env/bin/activate
 
 if [ "$#" < 5 ]; then
     echo "Illegal number of parameters"

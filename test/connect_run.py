@@ -31,7 +31,7 @@ def connect(id, process_count, thread_count, ssh_list, interval):
 
 def get_command_str(id, process_count, thread_count, interval):
     base_id = id * process_count * thread_count * interval
-    result = "source run_streaming.sh  {0:d} {1:d} {2:d} {3:d}".format(process_count, base_id, thread_count, interval)
+    result = "cd LEAFS/test && source run_streaming.sh  {0:d} {1:d} {2:d} {3:d}".format(process_count, base_id, thread_count, interval)
     return result    
 
 def disconnect(ssh_list):
@@ -47,12 +47,12 @@ def dump_data_points():
             data_points.append(x)
     data_points.sort()
 
-    filename = "log/{0:d}-{1:d}-{2:d}-{3:d}-{4}-{5:d}".format(_MACHINE_COUNT, _PROCESS_COUNT, _THREAD_COUNT, _INTERVAL, _level, _dump_count)
+    filename = "../log/{0:d}-{1:d}-{2:d}-{3:d}-{4}-{5:d}".format(_MACHINE_COUNT, _PROCESS_COUNT, _THREAD_COUNT, _INTERVAL, _level, _dump_count)
     with open(filename, 'w') as f:
         for data_point in data_points:
             f.write(str(data_point) + '\n')
     for key in _delay_time_dict:
-        del _delay_time_dict[key][:]
+        _delay_time_dict[key] = []
 
     _dump_count += 1 
 
@@ -141,8 +141,8 @@ if __name__ == "__main__":
     disconnect(_ssh_list)
 
     # calculate the average delay time
-    delay, count = calculate_delay_time(_delay_time_dict)
-    print("The average delay time is: {0:f}. The message collected is {1:d}".format(delay, count))
+    #delay, count = calculate_delay_time(_delay_time_dict)
+    #print("The average delay time is: {0:f}. The message collected is {1:d}".format(delay, count))
     
     
     #hmean = np.mean(data_points)
