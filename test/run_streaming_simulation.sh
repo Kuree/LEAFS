@@ -31,7 +31,7 @@ for fre in 10 20
 do 
     echo "Running simulation with machine count:  $MACHINE_COUNT. process count: $PROCESS_COUNT. thread count: $THREAD_COUNT"
     echo "frequency: $fre Benchmark level: $level"
-    python connect_run.py $MACHINE_COUNT $PROCESS_COUNT $THREAD_COUNT $fre $level $TOTAL_TIME $INTERVAL
+    python connect_streaming.py $MACHINE_COUNT $PROCESS_COUNT $THREAD_COUNT $fre $level $TOTAL_TIME $INTERVAL
 done
 
 # exit
