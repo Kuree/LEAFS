@@ -1,3 +1,5 @@
+import os, sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import paramiko
 from paho.mqtt.client import Client
 from paho.mqtt.publish import single
@@ -5,8 +7,8 @@ import time
 import struct
 import random
 import threading
-import sys
 import timeit
+from core import msgEncode
 #import numpy as np
 #import matplotlib.pyplot as plt
 #import scipy.stats as stats
@@ -65,7 +67,7 @@ def on_message(mqttc,  obj, msg):
         dump_data_points()
         return  # no need to store the data    
     payload = msg.payload
-    timestamp, seq, value = struct.unpack("dId", payload)
+    timestamp, seq, value = msgEncode.decode(payload)
     id = int(msg.topic.split("/")[-1])
     delay = received_time - value
     if id in _delay_time_dict:

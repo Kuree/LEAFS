@@ -1,10 +1,12 @@
+import os, sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from paho.mqtt.publish import single
 import random
 import struct
 import timeit
-import sys
 import threading
 import time
+from core import msgEncode
 
 def send_message(client_id, interval):
     time.sleep(random.uniform(0, interval))  #sleep some random time
@@ -12,7 +14,7 @@ def send_message(client_id, interval):
     while True:
         for j in range(interval):
             #start = timeit.default_timer()
-            single("benchmark/" + str(client_id + j), payload=bytearray(struct.pack("dId", timeit.default_timer(), i, timeit.default_timer())), hostname = "134.82.56.50")
+            single("benchmark/" + str(client_id + j), payload=msgEncode.encode(( timeit.default_timer(), i, timeit.default_timer())), hostname = "134.82.56.50")
             i += 1
             time.sleep(1 / interval)# -  (timeit.default_timer()- start))
 
