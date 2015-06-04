@@ -35,7 +35,7 @@ if __name__ == "__main__":
     count = 0
     for key in data_points_dict:
         ax0 = axs[count][0]
-        ax0.set_xlabel("Latency (s)")
+        if count == data_count - 1: ax0.set_xlabel("Latency (s)")
         args = key.split("-")
         machine_count = int(args[0])
         process_count = int(args[1])
@@ -50,3 +50,4 @@ if __name__ == "__main__":
         ax1.boxplot(data_points)
 
     plt.show()
+    fig.savefig("benchmark.pdf", format = "pdf")
