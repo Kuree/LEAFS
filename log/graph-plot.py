@@ -1,7 +1,7 @@
 import sys
 import re
 import os
-#import numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 #import scipy.stats as stats
 
@@ -46,7 +46,8 @@ if __name__ == "__main__":
         ax1 = axs[count][1]
         count += 1
         data_points = data_points_dict[key]
-        ax0.hist(data_points, histtype='bar', normed=True, bins=100)
+        weights = np.ones_like(data_points) / float(len(data_points))
+        ax0.hist(data_points, histtype='bar', bins=100, weights=weights)
         ax1.boxplot(data_points)
 
     plt.show()
