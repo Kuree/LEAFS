@@ -11,13 +11,13 @@ class WindowAgent:
     Only new window request will go though this agent
     """
 
-    _WINDOW_TOPIC_STRING = "+/Query/Window/+/+"
-    _COMMAND_TOPIC_STRING = "+/Query/Command/+/+"
-    _QUERY_RESULT_STRING = "/Query/Result/"
+    _WINDOW_TOPIC_STRING = "Window/+/+"
+    _COMMAND_TOPIC_STRING = "Command/+/+"
+    _QUERY_RESULT_STRING = "Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
-    _COMPUTE_REQUEST_TOPIC_STRING = "/Query/Compute/"
+    _COMPUTE_REQUEST_TOPIC_STRING = "Compute/"
 
-    _TIMEOUT_TOPIC_STRING = "Query/Timeout"
+    _TIMEOUT_TOPIC_STRING = "Timeout"
 
 
     _MAX_QOS_0_WINDOW_SIZE = 0
@@ -123,7 +123,7 @@ class WindowAgent:
     @staticmethod
     def get_query_client_info(topic):
         topics = topic.split("/")
-        if len(topics) != 5:  logger.log(logging.WARN, "Query should have 5 levels")
+        if len(topics) != 3:  logger.log(logging.WARN, "Query should have 3 levels")
         api_key = topics[-2]
         query_id = topics[-1]
         return api_key, query_id
@@ -184,9 +184,9 @@ class WindowAgent:
         # bump the buffer to the actual window and clear the window
 
         if stream_command.compute_command is not None:
-            publish.single(stream_command.db_tag + WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
+            publish.single(WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
         else:
-            publish.single(stream_command.db_tag + WindowAgent._QUERY_RESULT_STRING + request_id, 
+            publish.single(WindowAgent._QUERY_RESULT_STRING + request_id, 
                            msgEncode.encode(result), hostname=WindowAgent._HOSTNAME)
 
     def on_stream_message(self, mqttc, obj, msg):

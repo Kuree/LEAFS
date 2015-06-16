@@ -21,9 +21,9 @@ class QueryAgent:
         # declare the constants
         self._HOSTNAME = "mqtt.bucknell.edu"
         self._DATABASE_TAG = db_tag
-        self._QUERY_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Request/+/+"
-        self._QUERY_RESULT_TOPIC_STRING = self._DATABASE_TAG + "/Query/Result/"
-        self._COMPUTE_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/Query/Compute/"
+        self._QUERY_REQUEST_TOPIC_STRING = self._DATABASE_TAG + "/+/+"
+        self._QUERY_RESULT_TOPIC_STRING = "Result/"
+        self._COMPUTE_REQUEST_TOPIC_STRING = "Compute/"
         
         # create query sub, listening to all the query requests
         self._query_request_sub = Client()

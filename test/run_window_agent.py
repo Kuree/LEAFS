@@ -8,5 +8,5 @@ if __name__ == "__main__":
 
     # a house keeping threading to control timeout speed
     while True:
-        single("Query/Timeout", qos=2, hostname="mqtt.bucknell.edu")
+        single("Timeout", qos=2, hostname="mqtt.bucknell.edu")
         time.sleep(1)

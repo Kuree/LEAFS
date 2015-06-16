@@ -13,10 +13,10 @@ class QueryClient:
     _PAUSE = 1
     _DELETE = 2
     
-    _QUERY_REQUEST_TOPIC = "/Query/Request/"
-    _QUERY_COMMAND_TOPIC = "/Query/Command/"
-    _QUERY_RESULT_STRING = "/Query/Result/"
-    _WINDOW_REQUEST_TOPIC_STRING = "/Query/Window/"
+    #_QUERY_REQUEST_TOPIC = "/Query/Request/"
+    _QUERY_COMMAND_TOPIC = "Command/"
+    _QUERY_RESULT_TOPIC = "Result/"
+    _WINDOW_REQUEST_TOPIC_STRING = "Window/"
 
     def __init__(self, api_key, hostname = "mqtt.bucknell.edu"):
         """
@@ -45,9 +45,9 @@ class QueryClient:
 
         # manually subscribe to topic is the client has connected to the broker
         if self.__has_started: 
-            self._query_sub.subscribe(query_obj.db_tag + QueryClient._QUERY_RESULT_STRING + query_obj.request_id)
+            self._query_sub.subscribe(_QUERY_RESULT_STRING + query_obj.request_id)
             # send the query object to the server
-            publish.single(query_obj.db_tag + QueryClient._QUERY_REQUEST_TOPIC + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
+            publish.single(query_obj.db_tag + "/" + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
 
 
     def add_stream(self, db_tag, topic, compute):
@@ -56,8 +56,9 @@ class QueryClient:
         stream_obj = QueryStreamObject.create_stream_obj(self.api_key, query_id, topic, db_tag, compute)
         self.streams[request_id] = stream_obj
         if self.__has_started:
+            self._query_sub.subscribe(QueryClient._QUERY_RESULT_TOPIC + request_id)
             publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
-            self._query_sub.subscribe(db_tag + QueryClient._QUERY_REQUEST_TOPIC + request_id)
+            
 
 
     def start(self):
@@ -77,7 +78,7 @@ class QueryClient:
     def __handle_command(self, command):
         for request_id in self.queries:
             entry = self.queries[request_id]
-            publish.single(entry.db_tag + QueryClient._QUERY_COMMAND_TOPIC + request_id, command, hostname=self._HOSTNAME)
+            publish.single(QueryClient._QUERY_COMMAND_TOPIC + request_id, command, hostname=self._HOSTNAME)
 
     def delete(self):
         """
@@ -99,14 +100,14 @@ class QueryClient:
         self._query_sub.loop_start()
         for request_id in self.queries:
             query_obj = self.queries[request_id]
-            self._query_sub.subscribe(query_obj.db_tag + QueryClient._QUERY_RESULT_STRING + query_obj.request_id)
+            self._query_sub.subscribe(QueryClient._QUERY_RESULT_TOPIC  + query_obj.request_id)
             # send the query object to the server
-            publish.single(query_obj.db_tag + QueryClient._QUERY_REQUEST_TOPIC + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
+            publish.single(query_obj.db_tag + "/" + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
 
         for request_id in self.streams:
             stream_obj = self.streams[request_id]
-            publish.single(stream_obj.db_tag + QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
-            self._query_sub.subscribe(stream_obj.db_tag + QueryClient._QUERY_RESULT_STRING + request_id)
+            publish.single(QueryClient._WINDOW_REQUEST_TOPIC_STRING + request_id, json.dumps(stream_obj.to_object()), hostname=self._HOSTNAME)
+            self._query_sub.subscribe(QueryClient._QUERY_RESULT_TOPIC + request_id)
 
 
         self.__has_started = True

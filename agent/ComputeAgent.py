@@ -80,8 +80,8 @@ class ComputeFunction:
 
 class ComputeAgent:
 
-    _COMPUTE_REQUEST_TOPIC_STRING = "+/Query/Compute/+/+"
-    _QUERY_RESULT_TOPIC_STRING = "/Query/Result/"
+    _COMPUTE_REQUEST_TOPIC_STRING = "Compute/+/+"
+    _QUERY_RESULT_TOPIC_STRING = "Result/"
     _HOSTNAME = "mqtt.bucknell.edu"
     COMPUTE_FUNCTION = {ComputeCommand.AVERAGE : ComputeFunction.avg, ComputeCommand.MAX : ComputeFunction.max, 
                         ComputeCommand.MIN :ComputeFunction.sum,ComputeCommand.DEV : ComputeFunction.dev,
@@ -119,7 +119,7 @@ class ComputeAgent:
 
     def _on_compute_message(self, mqttc, obj, msg):
         topics = msg.topic.split("/")
-        if len(topics) != 5: logger.log(logging.WARN, "A standard request should have 5 levels")
+        if len(topics) != 3: logger.log(logging.WARN, "A standard request should have 3 levels")
         db_tag = topics[0]
 
         message = msgEncode.decode(msg.payload)
@@ -140,7 +140,7 @@ class ComputeAgent:
             commands.remove(command)
         
         request_id = topics[-2] + "/" +  topics[-1]
-        publish.single(db_tag + ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode(message[0]), hostname = ComputeAgent._HOSTNAME)
+        publish.single(ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode(message[0]), hostname = ComputeAgent._HOSTNAME)
         return
 
     @staticmethod
