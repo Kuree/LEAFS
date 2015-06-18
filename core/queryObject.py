@@ -72,12 +72,11 @@ class QueryStreamObject:
                 "request_id" : self.request_id, "timeout" : self.timeout}
 
     @staticmethod
-    def create_stream_obj(api_key, query_id, topic, db_tag, compute = None ):
+    def create_stream_obj(api_key, query_id, topic, compute = None ):
         result = QueryStreamObject(None, api_key, query_id)
         result.compute_command = compute if compute is not None else None
         result.topic = topic
         result.data = []
-        result.db_tag = db_tag
         return result
 
 class QueryObject:

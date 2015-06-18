@@ -175,13 +175,13 @@ class WindowAgent:
         request_id = stream_command.request_id
         for x in stream_command.data:
             result.append(x)
-            stream_command.data = []
-            if request_id in self._window_buffer:
-                for x in self._window_buffer[request_id]:
-                    stream_command.data.append(x)
-                    stream_command.data.sort(key=lambda x : x[1])
-                    self._window_buffer[request_id] = []
-        # bump the buffer to the actual window and clear the window
+        stream_command.data = []
+        if request_id in self._window_buffer:
+            for x in self._window_buffer[request_id]:
+                stream_command.data.append(x)
+                stream_command.data.sort(key=lambda x : x[1])
+                self._window_buffer[request_id] = []
+                # bump the buffer to the actual window and clear the window
 
         if stream_command.compute_command is not None:
             publish.single(WindowAgent._COMPUTE_REQUEST_TOPIC_STRING + request_id, msgEncode.encode(result, compute=stream_command.compute_command), hostname=WindowAgent._HOSTNAME)
@@ -234,9 +234,19 @@ class WindowAgent:
         if len(data_list) == 0:
             # list is empty. cool.
             self._add_data_point(stream_command, data_point)
+            if interval == 0:
+                self._send_data(stream_command)
             return None
         # we assume that the stream_command.data is already sorted by sequence number
         sequence_number = data_point[1]
+
+        # if the interval is 0
+        # it means we want to streaming data without aggregation and windowing.
+        # processed with nothing
+        if interval == 0:
+            self._send_data(stream_command)
+            return
+
         if sequence_number < data_list[-1][1]: # it is in the window
             if qos != 2:
                 # check duplicated points

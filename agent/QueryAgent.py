@@ -40,7 +40,7 @@ class QueryAgent:
         logger.log(logging.INFO, "New query message: " +  msg.payload.decode())
         topic = msg.topic
         topics = topic.split("/")
-        if len(topics) != 5: 
+        if len(topics) != 3: 
             logger.log(logging.ERROR, "Incorrect query request")
             return
         api_key = topics[-2]
@@ -85,7 +85,7 @@ class QueryAgent:
     def _command_on_message(self, mqttc, obj, msg):
         payload = msg.payload.decode()
         topics = msg.topic.split("/")
-        if len(topics) != 5:
+        if len(topics) != 3:
             logger.log(logging.ERROR, "Incorrect command request")
             return
         request_id = topics[-2] + "/" +  topics[-1]
