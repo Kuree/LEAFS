@@ -55,10 +55,10 @@ class QueryAgent:
         # self.add_streaming_query(query_obj.topic, request_id)
 
         
-        if query_obj.compute is None:
-            # let the query agent to relay the message
-            self._query_relay_sub.subscribe(query_obj.topic)
-            self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand.START)
+        #if query_obj.compute is None:
+        #    # let the query agent to relay the message
+        #    self._query_relay_sub.subscribe(query_obj.topic)
+        #    self._query_command_dict[request_id] = QueryCommand(request_id, QueryCommand.START)
 
         self._handle_query_request(query_obj.topic, query_obj.compute, request_id, query_obj.start, query_obj.end)
 
