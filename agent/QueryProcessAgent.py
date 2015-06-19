@@ -78,7 +78,28 @@ def on_message(mqttc, obj, msg):
             lat, lon, location_name = find_location_ip(ip)
     
     param_raw = request_data["PARAM"] if "PARAM" in request_data else "temperature"
-    time_raw = request_data["DATE"] if "DATE" in request_data else "now"
+    start_time_raw = request_data["START_TIME"]
+    end_time_raw = request_data["END_TIME"]
+
+    interval = 0
+    has_historical_query = False
+    has_streaming_query = False
+
+    if start_time_raw == "PRESENT_REF":
+        has_streaming_query = True
+    else:
+        has_historical_query = True
+        has_streaming_query = end_time_raw == "PRESENT_REF"
+
+
+    if has_streaming_query:
+        interval = 0
+        # TODO: add streaming stuff here
+    if has_historical_query:
+        start_time = int(start_time_raw)
+        end_time = int(time.time() * 1000) if end_time_raw == "PRESENT_REF" else int(end_time_raw)
+
+
     func_raw = request_data["FUNC"] if "FUNC" in request_data else "average"
 
     param = PARAM_DICT[param_raw]
