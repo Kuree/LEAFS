@@ -48,12 +48,13 @@ class SensorML:
             
         # get streaming topic
         topic = tree.xpath("//leafs:topic", namespaces=SensorML.ns)[0].text
-        sensor_tag = tree.xpath("//leafs:tag", namespaces=SensorML.ns)[0].text
+        sensor_tag = tree.xpath("//leafs:sensor_tag", namespaces=SensorML.ns)[0].text
+        db_tag = tree.xpath("//leafs:db_tag", namespaces=SensorML.ns)[0].text
 
         self.cur.execute("SELECT * FROM sensor WHERE sensor_tag = ?", (sensor_tag, ))
         matched_data= self.cur.fetchall()
         if len(matched_data) == 0:
-            self.cur.execute("INSERT INTO sensor Values (?, ?, ?, ?, ?, ?)", (sensor_tag, measure_type, topic, unit, lat, lon, ))
+            self.cur.execute("INSERT INTO sensor Values (?, ?, ?, ?, ?, ?, ?)", (sensor_tag, measure_type, topic, unit, lat, lon, db_tag))
             self.con.commit()
         
         self._sensor_list.append(Sensor(measure_type, unit, (lat, lon), topic))

@@ -38,9 +38,6 @@ class QueryProcessAgent:
             QueryProcessAgent.FUNCTION_DICT[x] = "max"
 
 
-        self.queryClient = QueryClient(api_key=1234)
-        self.queryClient.connect()
-
         self.con = sqlite3.connect("meta/sensor_meta.db", check_same_thread=False)
         # add compute distance function to sqlite
         self.con.create_function("IS_MATCH", 4, QueryProcessAgent.is_distance_match)
@@ -63,7 +60,8 @@ class QueryProcessAgent:
 
     def initialize_database(self):
         self.cur.execute('CREATE TABLE IF NOT EXISTS meta (type text, unit text)')
-        self.cur.execute('CREATE TABLE IF NOT EXISTS sensor (sensor_tag text PRIMARY KEY, type REFERENCES meta(type), topic text, unit REFERENCES meta(unit), lat REAL, lon REAL)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS sensor (sensor_tag text PRIMARY KEY, type REFERENCES meta(type), \
+        topic text, unit REFERENCES meta(unit), lat REAL, lon REAL, db_tag text)')
         self.con.commit()
         cf_names = self.get_cf_names()
         for cf_name in cf_names:
@@ -124,7 +122,6 @@ class QueryProcessAgent:
         start_time_raw = request_data["START_TIME"]
         end_time_raw = request_data["END_TIME"]
 
-        interval = 0
         has_historical_query = False
         has_streaming_query = False
 
@@ -133,15 +130,6 @@ class QueryProcessAgent:
         else:
             has_historical_query = True
             has_streaming_query = end_time_raw == "PRESENT_REF"
-
-
-        if has_streaming_query:
-            interval = 0
-            # TODO: add streaming stuff here
-        if has_historical_query:
-            start_time = int(start_time_raw)
-            end_time = int(time.time() * 1000) if end_time_raw == "PRESENT_REF" else int(end_time_raw)
-
 
         func_raw = request_data["FUNC"] if "FUNC" in request_data else "average"
 
@@ -161,9 +149,32 @@ class QueryProcessAgent:
 
 
         process_result = {"has_match" : has_match, "keyword" : [location_name]}
-
         single("ProcessResult/" + request_id, payload=json.dumps(process_result), hostname="mqtt.bucknell.edu")
-        self.queryClient.add_stream(search_results[0][2], None, False, topics[-1])
+
+        
+        self.handle_request(request_id, search_results, start_time_raw, end_time_raw, has_streaming_query, has_historical_query, func)
+        # self.queryClient.add_stream(search_results[0][2], None, False, topics[-1])
+
+    def handle_request(self, request_id, sensors, start, end, has_streaming, has_historical, function):
+        stream_request = []
+
+        for sensor in sensors:
+            topic = sensor[2]
+            db_tag = sensor[-1]
+            stream_request.append((topic, db_tag))
+        request = { "data" : stream_request, "function" : function}
+        
+        if has_streaming:
+            request["type"] = "stream"
+            single("Multi/" + request_id, json.dumps(request), hostname="mqtt.bucknell.edu")
+
+        if has_historical:
+            start_time = int(start)
+            end_time = int(time.time() * 1000) if end_time_raw == "PRESENT_REF" else int(end)
+            request["type"] = "historical"
+            request["start"] = start_time
+            request["end"] = end_time
+            single("Multi/" + request_id, json.dumps(request), hostname="mqtt.bucknell.edu")
 
 
 if __name__ == "__main__":

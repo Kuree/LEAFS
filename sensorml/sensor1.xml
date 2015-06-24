@@ -58,5 +58,6 @@
   
   <!-- For LEAFS streaming processing topic-->
   <leafs:topic>test/test/1</leafs:topic>
-  <leafs:tag>Test sensor</leafs:tag>
+  <leafs:sensor_tag>Test sensor</leafs:sensor_tag>
+  <leafs:db_tag>SQLite</leafs:db_tag>
 </sml:PhysicalComponent>
