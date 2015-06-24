@@ -1,5 +1,8 @@
 class Sensor:
     def __init__(self, type, unit, location, streamming_topic):
+        '''
+        Note: type is used as standard name in CF
+        '''
         self.type = type
         self.unit = unit
         self.lat = location[0]
