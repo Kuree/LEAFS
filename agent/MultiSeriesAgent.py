@@ -4,14 +4,14 @@ import json
 import time
 try:
     from core import msgEncode
-    from core import QueryCommand
+    from core import ComputeCommand
     from client import QueryClient
 except:
     import os, sys
     sys.path.insert(1, os.path.join(sys.path[0], '..'))
     from core import msgEncode
     from client import QueryClient
-    from core import QueryCommand
+    from core import ComputeCommand
 
 class MultiSeriesAgent:
     _AGENT_TOPIC = "Multi/+/+"
@@ -50,12 +50,12 @@ class MultiSeriesAgent:
         sensor_data = data["data"]
         function = data["function"]
 
-        self._result_dict[request_id] = {"type" : type, "function" : function, "series_count": 0, "data_points": []}
+        self._result_dict[request_id] = {"type" : type, "function" : function, "series_count": len(sensor_data), "data_points": []}
 
         if type == "stream":
             for sensor in sensor_data:
                 topic = sensor[0]
-                new_id = fnv32a(request_id + topic + str(time.time))
+                new_id = self.fnv32a(request_id + topic + str(time.time))
                 self.query_client.add_stream(topic, None, True, new_id)
                 self._request_id_table[new_id] = request_id
         elif type == "historical":
@@ -64,7 +64,7 @@ class MultiSeriesAgent:
                 db_tag = sensor[1]
                 start = data["start"]
                 end = data["end"]
-                new_id = fnv32a(request_id + topic + str(time.time))
+                new_id = self.fnv32a(request_id + topic + str(time.time))
                 self.query_client.add_query(db_tag, topic, start, end, query_id=new_id)
                 self.query_client.add_stream(topic, None, True, new_id)
                 self._request_id_table[new_id] = request_id
@@ -98,6 +98,9 @@ class MultiSeriesAgent:
 
         single("Compute/" + request_id, msgEncode.encode(result_points, compute=compute), hostname="mqtt.bucknell.edu")
 
+        # clear the old data
+        self._result_dict[request_id]["data_points"] = []
+
 
     def convert_to_command(function, interval):
         func_command = 0
@@ -119,14 +122,17 @@ class MultiSeriesAgent:
         return compute.to_obj()
 
 
-    def fnv32a(str):
+    def fnv32a(self, string):
         hval = 0x811c9dc5
         fnv_32_prime = 0x01000193
         uint32_max = 2 ** 32
-        for s in str:
+        for s in string:
             hval = hval ^ ord(s)
             hval = (hval * fnv_32_prime) % uint32_max
-        return hval
+        return str(hval)
 
 if __name__ == "__main__":
-    pass
+    a = MultiSeriesAgent()
+    a.connect()
+    while True:
+        time.sleep(10)

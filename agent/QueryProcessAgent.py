@@ -147,8 +147,9 @@ class QueryProcessAgent:
         else:
             has_match = True
 
-
-        process_result = {"has_match" : has_match, "keyword" : [location_name]}
+        process_result = {"has_match" : has_match, "location" : [location_name.split(",")], "result": []}
+        for sensor in search_results:
+            process_result["result"].append((sensor[-3], sensor[-2], sensor[0]))
         single("ProcessResult/" + request_id, payload=json.dumps(process_result), hostname="mqtt.bucknell.edu")
 
         
@@ -184,7 +185,10 @@ if __name__ == "__main__":
     # send testing message
     count = 0
     while True:
-        time.sleep(0.1)
+        time.sleep(0.5)
         # this is for test purpose
         # TODO: clean this up after testing
-        single("test/test/1", msgEncode.encode((time.time(), count, random.uniform(0.0, 10.0))), hostname = "mqtt.bucknell.edu")
+        sample = random.uniform(0.0, 10.0)
+        single("test/test/1", msgEncode.encode((time.time(), count, sample)), hostname = "mqtt.bucknell.edu")
+        single("test/test/2", msgEncode.encode((time.time(), count, 10 - sample)), hostname = "mqtt.bucknell.edu")
+        count += 1

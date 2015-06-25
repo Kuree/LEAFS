@@ -91,7 +91,7 @@ class ComputeAgent:
        self._compute_request_sub = Client()
        self._compute_request_sub.on_message = self._on_compute_message
        self._compute_request_sub.connect(ComputeAgent._HOSTNAME)
-       self._compute_request_sub.subscribe(ComputeAgent._COMPUTE_REQUEST_TOPIC_STRING, 0)
+       self._compute_request_sub.subscribe(ComputeAgent._COMPUTE_REQUEST_TOPIC_STRING)
 
        self.block_current_thread = block_current_thread
 
