@@ -45,7 +45,7 @@ class QueryClient:
 
         # manually subscribe to topic is the client has connected to the broker
         if self.__has_started: 
-            if subscribe_to_result: self._query_sub.subscribe(_QUERY_RESULT_STRING + query_obj.request_id)
+            if subscribe_to_result: self._query_sub.subscribe(QueryClient._QUERY_RESULT_TOPIC + query_obj.request_id)
             # send the query object to the server
             publish.single(query_obj.db_tag + "/" + query_obj.request_id, json.dumps(query_obj.to_object()), hostname=self._HOSTNAME)
 

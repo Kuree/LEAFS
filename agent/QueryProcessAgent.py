@@ -171,7 +171,7 @@ class QueryProcessAgent:
 
         if has_historical:
             start_time = int(start)
-            end_time = int(time.time() * 1000) if end_time_raw == "PRESENT_REF" else int(end)
+            end_time = int(time.time() * 1000) if end == "PRESENT_REF" else int(end)
             request["type"] = "historical"
             request["start"] = start_time
             request["end"] = end_time
