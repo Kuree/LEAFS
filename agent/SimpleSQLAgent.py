@@ -41,11 +41,11 @@ class SQLAgent(QueryAgent):
             return
         self.cursor.execute("CREATE TABLE IF NOT EXISTS test (topic text, timestamp real, sequence_number integer, value real)")
         # insert dummy data
-        start_time = int(time.time() - 100000)
-        end_time = int(time.time() + 100000)
+        start_time = int(time.time() - 3000000)
+        end_time = int(time.time() + 3000000)
         count = 0
         topic_list = ["test/test/1", "test/test/2"]
-        for i in range(start_time, end_time):
+        for i in range(start_time, end_time, 900):
             for topic in topic_list:
                 self.cursor.execute("INSERT INTO test VALUES(?, ?, ?, ?)", (topic, i, count, random.uniform(0, 10),))
         self.connection.commit()
