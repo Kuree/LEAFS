@@ -1,7 +1,13 @@
 from lxml import etree
-from sensor import Sensor
 import os
 import sqlite3
+try:
+    from meta import Sensor
+except:
+    import os, sys
+    sys.path.insert(1, os.path.join(sys.path[0], '..'))
+    from meta import Sensor
+
 
 class SensorML:
     ns = {"sml" : "http://www.opengis.net/sensorml/2.0" ,
@@ -57,7 +63,7 @@ class SensorML:
             self.cur.execute("INSERT INTO sensor Values (?, ?, ?, ?, ?, ?, ?)", (sensor_tag, measure_type, topic, unit, lat, lon, db_tag))
             self.con.commit()
         
-        self._sensor_list.append(Sensor(measure_type, unit, (lat, lon), topic))
+        self._sensor_list.append(Sensor(sensor_tag, measure_type, unit, (lat, lon), topic, db_tag))
 
 if __name__ == "__main__":
     s = SensorML()

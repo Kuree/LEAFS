@@ -27,7 +27,7 @@ class QueryProcessAgent:
     MAX_LIST = ["max", "maximum"]
     MIN_LIST = ["min", "minimum"]
     FUNCTION_DICT = {}
-    THRESHOLD =  20
+    THRESHOLD =  20 # in km
 
     def __init__(self):
         for x in QueryProcessAgent.AVERAGE_LIST:
@@ -102,6 +102,7 @@ class QueryProcessAgent:
             lon = 0
             location_name = "Unknown"
         return lat, lon, location_name
+
 
     def on_message(self, mqttc, obj, msg):
         topics = msg.topic.split("/")
