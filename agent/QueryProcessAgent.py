@@ -186,10 +186,4 @@ if __name__ == "__main__":
     # send testing message
     count = 0
     while True:
-        time.sleep(0.5)
-        # this is for test purpose
-        # TODO: clean this up after testing
-        sample = random.uniform(0.0, 10.0)
-        single("test/test/1", msgEncode.encode((time.time(), count, sample)), hostname = "mqtt.bucknell.edu")
-        single("test/test/2", msgEncode.encode((time.time(), count, 10 - sample)), hostname = "mqtt.bucknell.edu")
-        count += 1
+        time.sleep(100)

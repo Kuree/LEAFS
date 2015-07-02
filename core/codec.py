@@ -20,7 +20,8 @@ class msgEncode:
     @staticmethod
     def encode(data, timestamp_type = IEEE_DOUBLE, value_type = IEEE_DOUBLE, compute = None):
         if len(data) == 0:
-            return
+            return bytearray(struct.pack("i", 0))   
+
         if isinstance(data[0], tuple) or isinstance(data[0], list):
             count = len(data)
             has_list = True
@@ -51,6 +52,8 @@ class msgEncode:
         This will return a dictionary containing all the information
         '''
         raw_header_type = msg[0:4]
+        if struct.unpack("i", raw_header_type)[0] == 0:
+            return []
         # has_list, is_pack_tuple, compute, is_multiple_series, timestamp_type, value_type, count = 0
         has_list, is_tuple_pack, has_compute, is_multiple_series, timestamp_type, value_type, count = msgEncode._get_header_decode(raw_header_type)
         # multiple series is not currently supported
@@ -165,3 +168,4 @@ class msgEncode:
 
 if __name__ == "__main__":
     print(msgEncode.decode(msgEncode.encode([(123, 1, 1), (123, 1, 1), (123, 1, 1)], compute=[(1, 2)])))
+    print(msgEncode.decode(msgEncode.encode([])))
