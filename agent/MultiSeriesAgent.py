@@ -80,7 +80,7 @@ class MultiSeriesAgent:
 
     def on_client_message(self, topic, payload):
         
-        if msg.topic == MultiSeriesAgent._TIME_OUT_TOPIC:
+        if topic == MultiSeriesAgent._TIME_OUT_TOPIC:
             self.handle_time_out()
             return
 
