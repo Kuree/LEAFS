@@ -16,6 +16,7 @@ except:
 class MultiSeriesAgent:
     _AGENT_TOPIC = "Multi/+/+"
     _TIME_OUT_TOPIC = "MultiTimeout"
+    _TIME_OUT_TIME = 60
 
     def __init__(self):
         self.client = Client()
@@ -32,10 +33,11 @@ class MultiSeriesAgent:
         self.client.loop_start()
         self.client.subscribe(MultiSeriesAgent._AGENT_TOPIC)
 
-    def on_message(self, mqttc, obj, msg):
-        topics = msg.topic.split("/")
+        self.query_client._subscribe(MultiSeriesAgent._TIME_OUT_TOPIC)
 
-        # TODO: ADD TIME OUT
+    def on_message(self, mqttc, obj, msg):
+
+        topics = msg.topic.split("/")
 
         if len(topics) != 3:
             return
@@ -45,12 +47,19 @@ class MultiSeriesAgent:
             data = json.loads(msg.payload.decode())
             self.handle_multi_request(request_id, data)
 
+
+    def handle_time_out(self):
+        for request_id in self._result_dict:
+            timeout_time = self._result_dict[request_id]["time"] + MultiSeriesAgent._TIME_OUT_TIME
+            if timeout_time > time.time():
+                self.send_data(request_id)
+
     def handle_multi_request(self, request_id, data):
         type = data["type"]
         sensor_data = data["data"]
         function = data["function"]
 
-        self._result_dict[request_id] = {"type" : type, "function" : function, "series_count": len(sensor_data), "data_points": []}
+        self._result_dict[request_id] = {"type" : type, "function" : function, "series_count": len(sensor_data), "data_points": [], "time" : time.time()}
 
         if type == "stream":
             for sensor in sensor_data:
@@ -70,11 +79,17 @@ class MultiSeriesAgent:
                 self._request_id_table[new_id] = request_id
 
     def on_client_message(self, topic, payload):
+        
+        if msg.topic == MultiSeriesAgent._TIME_OUT_TOPIC:
+            self.handle_time_out()
+            return
+
         topics = topic.split("/")
         id = topics[-1]
         request_id = self._request_id_table[id]
         data_points = msgEncode.decode(payload)
         data_points_list = self._result_dict[request_id]["data_points"]
+        self._result_dict[request_id]["time"] = time.time()
         data_points_list.append(data_points)
         if len(data_points_list) >= self._result_dict[request_id]["series_count"]:
             self.send_data(request_id)
@@ -135,4 +150,5 @@ if __name__ == "__main__":
     a = MultiSeriesAgent()
     a.connect()
     while True:
-        time.sleep(10)
+        time.sleep(2)
+        single(MultiSeriesAgent._TIME_OUT_TOPIC, hostname="mqtt.bucknell.edu")

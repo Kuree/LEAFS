@@ -37,7 +37,7 @@ class GHCNQueryAgent(QueryAgent):
             return []
         tm = data['TMAX'].copy()
         tm.value=tm.value/10.0
-        for timestamp, value in tm['value'][start:end].iteritems():
+        for timestamp, value in tm['value'][start_time:end_time].iteritems():
             t = time.mktime(datetime.datetime.strptime(str(timestamp), "%Y-%m-%d").timetuple())
             result.append((t, 0, float(value))) # use 0 for sequence number because it's lagecy database
         return result

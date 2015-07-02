@@ -116,3 +116,7 @@ class QueryClient:
         Need to override if the client needs message from the system
         """
         pass
+
+    def _subscribe(self, topic):
+        """ Used internally """
+        self._query_sub.subscribe(topic)
