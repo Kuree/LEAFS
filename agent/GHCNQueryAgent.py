@@ -3,6 +3,7 @@ import time
 import random
 import pandas
 import datetime
+import math
 
 try:
     from agent.QueryAgent import QueryAgent
@@ -39,7 +40,9 @@ class GHCNQueryAgent(QueryAgent):
         tm.value=tm.value/10.0
         for timestamp, value in tm['value'][start_time:end_time].iteritems():
             t = time.mktime(datetime.datetime.strptime(str(timestamp), "%Y-%m-%d").timetuple())
-            result.append((t, 0, float(value))) # use 0 for sequence number because it's lagecy database
+            float_value = float(value)
+            if not math.isnan(float_value):
+                result.append((t, 0, float_value)) # use 0 for sequence number because it's lagecy database
         return result
 
 

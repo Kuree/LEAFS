@@ -3,9 +3,14 @@ import paho.mqtt.publish as publish
 import math
 import logging
 from functools import reduce
-from core import ComputeCommand, msgEncode, logger
 import time
 import json
+try:
+    from core import ComputeCommand, msgEncode, logger
+except:
+    import os, sys
+    sys.path.insert(1, os.path.join(sys.path[0], '..'))
+    from core import ComputeCommand, msgEncode, logger
 
 class ComputeFunction:
     # NOTICE:
@@ -121,8 +126,11 @@ class ComputeAgent:
         topics = msg.topic.split("/")
         if len(topics) != 3: logger.log(logging.WARN, "A standard request should have 3 levels")
         db_tag = topics[0]
-
+        request_id = topics[-2] + "/" +  topics[-1]
         message = msgEncode.decode(msg.payload)
+        if len(message) == 0:
+            publish.single(ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode([]), hostname = ComputeAgent._HOSTNAME)
+            return
         data = message[0]
         commands = message[1]
 
@@ -139,7 +147,9 @@ class ComputeAgent:
 
             commands.remove(command)
         
-        request_id = topics[-2] + "/" +  topics[-1]
+        # filter invalid points
+        message[0] = [x for x in message[0] if (not math.isnan(x[0])) and (not math.isnan(x[2]))]
+
         publish.single(ComputeAgent._QUERY_RESULT_TOPIC_STRING + request_id, msgEncode.encode(message[0]), hostname = ComputeAgent._HOSTNAME)
         return
 
@@ -174,5 +184,6 @@ class ComputeAgent:
         return result
 
 if __name__ == "__main__" and __package__ is None:
+    print("Running compute agent")
     sys = ComputeAgent(True)
     sys.connect()

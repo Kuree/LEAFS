@@ -16,7 +16,7 @@ except:
 class MultiSeriesAgent:
     _AGENT_TOPIC = "Multi/+/+"
     _TIME_OUT_TOPIC = "MultiTimeout"
-    _TIME_OUT_TIME = 60
+    _TIME_OUT_TIME = 120
 
     def __init__(self):
         self.client = Client()
@@ -51,7 +51,7 @@ class MultiSeriesAgent:
     def handle_time_out(self):
         for request_id in self._result_dict:
             timeout_time = self._result_dict[request_id]["time"] + MultiSeriesAgent._TIME_OUT_TIME
-            if timeout_time > time.time():
+            if timeout_time < time.time():
                 self.send_data(request_id)
 
     def handle_multi_request(self, request_id, data):
